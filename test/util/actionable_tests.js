@@ -5,6 +5,7 @@ require('../helpers');
 var chai = require('chai');
 var expect = chai.expect;
 var sinon = require('sinon');
+var Promise = require('bluebird');
 var Actionable = require('../../lib/util/actionable');
 
 describe('Actionable', function() {
@@ -14,6 +15,12 @@ describe('Actionable', function() {
     var action = Actionable.create(spy);
     action.execute();
     expect(spy).to.have.been.calledOnce;
+  });
+
+  it('is thenable when function returns a promise', function() {
+    return Actionable.create(function() {
+      return Promise.resolve();
+    });
   });
 
   it('executes the function once when executed multiple times', function() {
