@@ -193,55 +193,39 @@ describe('SelectQuery', __query(function(query, adapter) {
     expect(original.statement).to.not.eql(filtered.statement);
   });
 
-  it('has a fetch method', function(done) {
+  it('has a fetch method', function() {
     adapter.intercept(/select.*from "users"/i, {
       fields: ['id', 'title'],
       rows: [{ id: 1, title: '1' }]
     });
-    select('users').fetch().then(function(rows) {
-      expect(rows).to.eql([{ id: 1, title: '1' }]);
-    })
-    .then(done, done);
+    return select('users').fetch()
+      .should.eventually.eql([{ id: 1, title: '1' }]);
   });
 
-  it('can add transforms', function(done) {
-    select('users')
-    .transform(function(result) { return result.rows; })
-    .then(function(result) {
-      expect(result).to.eql([]);
-    })
-    .then(done, done);
+  it('can add transforms', function() {
+    var transform = function(result) { return result.rows; };
+    return select('users').transform(transform)
+      .should.eventually.eql([]);
   });
 
-  it('can remove transforms', function(done) {
+  it('can remove transforms', function() {
     var transform = function() { throw new Error('Transform installed'); };
-    select('users')
-    .transform(transform)
-    .untransform(transform)
-    .then(function(result) {
-      expect(result).to.eql({ rows: [], fields: [] });
-    })
-    .then(done, done);
+    return select('users').transform(transform).untransform(transform)
+      .should.eventually.eql({ rows: [], fields: [] });
   });
 
-  it('gives an error when using fetch with a non-array transform', function(done) {
-    select('users').transform(function(result) { return result; }).fetch()
-    .throw(new Error('Expected query to fail.'))
-    .catch(function(e) {
-      expect(e.message).to.match(/transform.*did not produce.*array/i);
-    })
-    .then(done, done);
+  it('gives an error when using fetch with a non-array transform', function() {
+    return select('users').transform(function(result) { return result; }).fetch()
+      .should.eventually.be.rejectedWith(/transform.*did not produce.*array/i);
   });
 
-  it('has a fetchOne method', function(done) {
+  it('has a fetchOne method', function() {
     adapter.intercept(/select.*from "users"/i, {
       fields: ['id', 'title'],
       rows: [{ id: 1, title: '1' }]
     });
-    select('users').fetchOne().then(function(result) {
-      expect(result).to.eql({ id: 1, title: '1' });
-    })
-    .then(done, done);
+    return select('users').fetchOne()
+      .should.eventually.eql({ id: 1, title: '1' });
   });
 
   it('gives an error when fetchOne gets no results', function(done) {

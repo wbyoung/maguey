@@ -33,7 +33,9 @@ global.__connect = function(config, fn) {
   };
 };
 
+chai.should();
 chai.use(require('sinon-chai'));
+chai.use(require('chai-as-promised'));
 chai.use(function (_chai, _) {
   var Assertion = _chai.Assertion;
   Assertion.addMethod('query', function(sql, args) {
