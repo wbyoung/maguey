@@ -452,24 +452,53 @@ describe('Condition', function() {
     });
   });
 
-  describe('syntax builder', function() {
-    var reduceToString = function(node, children) {
-      var str = node.type;
-      if (node.attrs.operator) {
-        str = util.format('%s=%s', str, node.attrs.operator);
-      }
-      if (node.attrs.predicate) {
-        str = util.format('%s=%s', str, node.attrs.predicate);
-      }
-      if (node.attrs.value) {
-        str = util.format('%s=%s', str, node.attrs.value);
-      }
-      if (children.length) {
-        str = util.format('<%s %s>', str, children.join(', '));
-      }
-      return str;
-    };
+  var reduceToString = function(node, children) {
+    var str = node.type;
+    if (node.attrs.operator) {
+      str = util.format('%s=%s', str, node.attrs.operator);
+    }
+    if (node.attrs.predicate) {
+      str = util.format('%s=%s', str, node.attrs.predicate);
+    }
+    if (node.attrs.value) {
+      str = util.format('%s=%s', str, node.attrs.value);
+    }
+    if (children.length) {
+      str = util.format('<%s %s>', str, children.join(', '));
+    }
+    return str;
+  };
 
+
+  describe('enumeration', function() {
+    it('can have its fields reduced', function() {
+      var first = w({ first: 'Whitney' }, '||', { first: 'Whit' });
+      var condition = w(first, '&&', { last$contains: 'Young' });
+      var reduced = condition.reduceFields(function(arr, field) {
+        arr.push(field);
+        return arr;
+      }, []);
+      expect(reduced).to.eql(['first', 'first', 'last']);
+    });
+
+    it('can transform expressions', function() {
+      var first = w({ first: 'Whitney' }, '||', { first: 'Whit' });
+      var condition = w(first, '&&', { last$contains: 'Young' });
+      var transformer = function(predicate, field, value) {
+        return ['_' + field, '_' + value];
+      };
+      var transformed = condition.transformExpressions(transformer);
+      expect(transformed._tree.reduce(reduceToString)).to.eql('<tree ' +
+        '<binaryOperation=and ' +
+        '<group <tree ' +
+        '<binaryOperation=or ' +
+        '<expression=exact leaf=_first, leaf=_Whitney>, ' +
+        '<expression=exact leaf=_first, leaf=_Whit>>>>, ' +
+        '<expression=contains leaf=_last, leaf=_Young>>>');
+    });
+  });
+
+  describe('syntax builder', function() {
     it('properly groups binary operators', function() {
       var c = w({ id: 1 }, w.and, { id: 2 });
       var s = c._tree.reduce(reduceToString);
