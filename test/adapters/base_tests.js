@@ -3,7 +3,7 @@
 require('../helpers');
 
 var expect = require('chai').expect;
-var Adapter = require('../../lib/adapters/base');
+var Adapter = require('../..').Adapter;
 
 var adapter;
 

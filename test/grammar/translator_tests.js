@@ -4,7 +4,7 @@ require('../helpers');
 
 var expect = require('chai').expect;
 
-var Translator = require('../../lib/dialect/translator');
+var Translator = require('../..').Adapter.Translator;
 
 describe('Translator', function() {
 

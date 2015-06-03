@@ -7,7 +7,7 @@ var expect = chai.expect;
 
 var util = require('util');
 var Node = require('../../lib/condition/node');
-var Condition = require('../../lib/condition'),
+var Condition = require('../..').Condition,
   w = Condition.w,
   f = Condition.f,
   l = Condition.l;

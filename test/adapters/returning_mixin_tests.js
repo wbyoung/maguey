@@ -5,8 +5,8 @@ require('../helpers');
 var expect = require('chai').expect;
 
 var Promise = require('bluebird');
-var Adapter = require('../../lib/adapters/base');
-var EntryQuery = require('../../lib/query/entry');
+var Adapter = require('../..').Adapter;
+var EntryQuery = require('../..').EntryQuery;
 var returning = require('../../lib/adapters/mixins/returning'),
   EmbedPseudoReturn = returning.EmbedPseudoReturn,
   ExtractPseudoReturn = returning.ExtractPseudoReturn;
