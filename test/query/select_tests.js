@@ -204,6 +204,26 @@ describe('SelectQuery', __query(function(query, adapter) {
     .then(done, done);
   });
 
+  it('can add transforms', function(done) {
+    select('users')
+    .transform(function(result) { return result.rows; })
+    .then(function(result) {
+      expect(result).to.eql([]);
+    })
+    .then(done, done);
+  });
+
+  it('can remove transforms', function(done) {
+    var transform = function() { throw new Error('Transform installed'); };
+    select('users')
+    .transform(transform)
+    .untransform(transform)
+    .then(function(result) {
+      expect(result).to.eql({ rows: [], fields: [] });
+    })
+    .then(done, done);
+  });
+
   it('gives an error when using fetch with a non-array transform', function(done) {
     select('users').transform(function(result) { return result; }).fetch()
     .throw(new Error('Expected query to fail.'))

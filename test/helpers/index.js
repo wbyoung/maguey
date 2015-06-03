@@ -13,6 +13,9 @@ var lib = require('../..');
 global.__query = function(fn) {
   var adapter = FakeAdapter.create({});
   var query = EntryQuery.create(adapter);
+  beforeEach(function() {
+    adapter.init({}); // re-initialize
+  });
   return function() {
     fn.call(this, query, adapter);
   };
