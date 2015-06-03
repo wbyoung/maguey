@@ -91,18 +91,18 @@ describe('SQLite3', __connect(config, function(query, adapter) {
   describe('with simple table', function() {
     before(function(done) {
       adapter
-        .execute('CREATE TABLE azul_test (id serial, name varchar(255))', [])
+        .execute('CREATE TABLE maguey_test (id serial, name varchar(255))', [])
         .then(_.ary(done, 0), done);
     });
 
     after(function(done) {
       adapter
-        .execute('DROP TABLE azul_test', [])
+        .execute('DROP TABLE maguey_test', [])
         .then(_.ary(done, 0), done);
     });
 
     it('returning does not work on non primary key', function(done) {
-      query.insert('azul_test', { name: 'Azul' })
+      query.insert('maguey_test', { name: 'Azul' })
       .returning('name')
       .then(function(data) {
         expect(data.rows[0].name).to.not.eql('Azul');

@@ -3,7 +3,7 @@
 require('../helpers');
 
 // $ mysql -u root
-// > CREATE DATABASE azul_test;
+// > CREATE DATABASE maguey_test;
 // > exit
 
 if (!/^(1|true)$/i.test(process.env.TEST_MYSQL || '1')) { return; }
@@ -20,7 +20,7 @@ var config = {
   connection: {
     user: process.env.MYSQL_USER || 'root',
     password: process.env.MYSQL_PASSWORD || '',
-    database: process.env.MYSQL_DATABASE || 'azul_test'
+    database: process.env.MYSQL_DATABASE || 'maguey_test'
   }
 };
 
@@ -96,18 +96,18 @@ describe('MySQL', __connect(config, function(query, adapter) {
   describe('with simple table', function() {
     before(function(done) {
       adapter
-        .execute('CREATE TABLE azul_test (id serial, name varchar(255))', [])
+        .execute('CREATE TABLE maguey_test (id serial, name varchar(255))', [])
         .then(_.ary(done, 0), done);
     });
 
     after(function(done) {
       adapter
-        .execute('DROP TABLE azul_test', [])
+        .execute('DROP TABLE maguey_test', [])
         .then(_.ary(done, 0), done);
     });
 
     it('returning does not work on non primary key', function(done) {
-      query.insert('azul_test', { name: 'Azul' })
+      query.insert('maguey_test', { name: 'Azul' })
       .returning('name')
       .then(function(data) {
         expect(data.rows[0].name).to.not.eql('Azul');

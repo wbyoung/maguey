@@ -15,7 +15,7 @@ describe('maguey', function() {
       connection: {
         username: 'root',
         password: '',
-        database: 'azul_test'
+        database: 'maguey_test'
       }
     };
     expect(function() {

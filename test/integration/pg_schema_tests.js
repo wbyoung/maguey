@@ -4,7 +4,7 @@ require('../helpers');
 
 // $ createuser -s root
 // $ psql -U root -d postgres
-// > CREATE DATABASE azul_test;
+// > CREATE DATABASE maguey_test;
 // > \q
 
 if (!/^(1|true)$/i.test(process.env.TEST_POSTGRES || '1')) { return; }
@@ -21,7 +21,7 @@ var executedSQL, config = {
   connection: {
     user: process.env.PG_USER || 'root',
     password: process.env.PG_PASSWORD || '',
-    database: process.env.PG_DATABASE || 'azul_test'
+    database: process.env.PG_DATABASE || 'maguey_test'
   }
 };
 

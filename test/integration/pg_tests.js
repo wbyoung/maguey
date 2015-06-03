@@ -4,7 +4,7 @@ require('../helpers');
 
 // $ createuser -s root
 // $ psql -U root -d postgres
-// > CREATE DATABASE azul_test;
+// > CREATE DATABASE maguey_test;
 // > \q
 
 if (!/^(1|true)$/i.test(process.env.TEST_POSTGRES || '1')) { return; }
@@ -19,7 +19,7 @@ var config = {
   connection: {
     user: process.env.PG_USER || 'root',
     password: process.env.PG_PASSWORD || '',
-    database: process.env.PG_DATABASE || 'azul_test'
+    database: process.env.PG_DATABASE || 'maguey_test'
   }
 };
 
@@ -90,18 +90,18 @@ describe('PostgreSQL', __connect(config, function(query, adapter) {
   describe('with simple table', function() {
     before(function(done) {
       adapter
-        .execute('CREATE TABLE azul_test (id serial, name varchar(255))', [])
+        .execute('CREATE TABLE maguey_test (id serial, name varchar(255))', [])
         .then(_.ary(done, 0), done);
     });
 
     after(function(done) {
       adapter
-        .execute('DROP TABLE azul_test', [])
+        .execute('DROP TABLE maguey_test', [])
         .then(_.ary(done, 0), done);
     });
 
     it('allows use of returning on non primary key', function(done) {
-      query.insert('azul_test', { name: 'Azul' })
+      query.insert('maguey_test', { name: 'Azul' })
       .returning('name')
       .then(_.partial(_.omit, _, 'client'))
       .then(function(data) {
@@ -111,8 +111,8 @@ describe('PostgreSQL', __connect(config, function(query, adapter) {
     });
 
     it('allows use of returning for full row', function(done) {
-      resetSequence.call(this, 'azul_test').then(function() {
-        return query.insert('azul_test', { name: 'Azul' }).returning('*');
+      resetSequence.call(this, 'maguey_test').then(function() {
+        return query.insert('maguey_test', { name: 'Azul' }).returning('*');
       })
       .then(_.partial(_.omit, _, 'client'))
       .then(function(data) {
