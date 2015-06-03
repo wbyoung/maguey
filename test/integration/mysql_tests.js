@@ -16,9 +16,12 @@ var PseudoReturn = returning.PseudoReturn;
 
 var shared = require('./shared_behaviors');
 var config = {
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: process.env.MYSQL_DATABASE || 'azul_test'
+  adapter: 'mysql',
+  connection: {
+    user: process.env.MYSQL_USER || 'root',
+    password: process.env.MYSQL_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE || 'azul_test'
+  }
 };
 
 var resetSequence = function(table) {
@@ -32,7 +35,7 @@ var castDatabaseValue = function(type, value) {
   return value;
 };
 
-describe('MySQL', __connect('mysql', config, function(query, adapter) {
+describe('MySQL', __connect(config, function(query, adapter) {
   before(function() { this.query = query; });
   before(function() { this.resetSequence = resetSequence; });
   before(function() { this.castDatabaseValue = castDatabaseValue; });

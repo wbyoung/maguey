@@ -12,10 +12,13 @@ var EntryQuery = require('../../lib/query/entry');
 var schema;
 
 var executedSQL, config = {
-  filename: ''
+  adapter: 'sqlite3',
+  connection: {
+    filename: ''
+  }
 };
 
-describe('SQLite3 schema', __connect('sqlite3', config, function(query, adapter) {
+describe('SQLite3 schema', __connect(config, function(query, adapter) {
   beforeEach(function() { schema = query.schema(); });
   beforeEach(function() {
     sinon.spy(adapter, '_execute');

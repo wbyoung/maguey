@@ -15,9 +15,12 @@ var Promise = require('bluebird');
 
 var shared = require('./shared_behaviors');
 var config = {
-  user: process.env.PG_USER || 'root',
-  password: process.env.PG_PASSWORD || '',
-  database: process.env.PG_DATABASE || 'azul_test'
+  adapter: 'pg',
+  connection: {
+    user: process.env.PG_USER || 'root',
+    password: process.env.PG_PASSWORD || '',
+    database: process.env.PG_DATABASE || 'azul_test'
+  }
 };
 
 var resetSequence = function(table) {
@@ -32,7 +35,7 @@ var castDatabaseValue = function(type, value) {
   return value;
 };
 
-describe('PostgreSQL', __connect('pg', config, function(query, adapter) {
+describe('PostgreSQL', __connect(config, function(query, adapter) {
   before(function() { this.query = query; });
   before(function() { this.resetSequence = resetSequence; });
   before(function() { this.castDatabaseValue = castDatabaseValue; });

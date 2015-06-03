@@ -8,7 +8,7 @@ var util = require('util');
 var BaseQuery = require('../..').BaseQuery;
 var EntryQuery = require('../..').EntryQuery;
 var FakeAdapter = require('../fakes/adapter');
-var adapters = require('../../lib/adapters');
+var lib = require('../..');
 
 global.__query = function(fn) {
   var adapter = FakeAdapter.create({});
@@ -18,9 +18,9 @@ global.__query = function(fn) {
   };
 };
 
-global.__connect = function(name, options, fn) {
-  var adapter = adapters[name].create(options);
-  var query = EntryQuery.create(adapter);
+global.__connect = function(config, fn) {
+  var query = lib(config);
+  var adapter = query._adapter;
   return function() {
     before(function(done) {
       query.raw('select 1').execute().return().then(done, done);

@@ -12,7 +12,10 @@ var PseudoReturn = returning.PseudoReturn;
 
 var shared = require('./shared_behaviors');
 var config = {
-  filename: ''
+  adapter: 'sqlite3',
+  connection: {
+    filename: ''
+  }
 };
 
 var resetSequence = Promise.method(function(/*table*/) {
@@ -31,7 +34,7 @@ var castDatabaseValue = function(type, value, options) {
   return value;
 };
 
-describe('SQLite3', __connect('sqlite3', config, function(query, adapter) {
+describe('SQLite3', __connect(config, function(query, adapter) {
   before(function() { this.query = query; });
   before(function() { this.resetSequence = resetSequence; });
   before(function() { this.castDatabaseValue = castDatabaseValue; });

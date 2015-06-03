@@ -10,12 +10,15 @@ var sinon = require('sinon'); chai.use(require('sinon-chai'));
 var schema;
 
 var executedSQL, config = {
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: process.env.MYSQL_DATABASE || 'azul_test'
+  adapter: 'mysql',
+  connection: {
+    user: process.env.MYSQL_USER || 'root',
+    password: process.env.MYSQL_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE || 'azul_test'
+  }
 };
 
-describe('MySQL schema', __connect('mysql', config, function(query, adapter) {
+describe('MySQL schema', __connect(config, function(query, adapter) {
   beforeEach(function() { schema = query.schema(); });
   beforeEach(function() {
     sinon.spy(adapter, '_execute');

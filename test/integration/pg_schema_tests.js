@@ -17,12 +17,15 @@ var EntryQuery = require('../../lib/query/entry');
 var schema;
 
 var executedSQL, config = {
-  user: process.env.PG_USER || 'root',
-  password: process.env.PG_PASSWORD || '',
-  database: process.env.PG_DATABASE || 'azul_test'
+  adapter: 'pg',
+  connection: {
+    user: process.env.PG_USER || 'root',
+    password: process.env.PG_PASSWORD || '',
+    database: process.env.PG_DATABASE || 'azul_test'
+  }
 };
 
-describe('PostgreSQL schema', __connect('pg', config, function(query, adapter) {
+describe('PostgreSQL schema', __connect(config, function(query, adapter) {
   beforeEach(function() { schema = query.schema(); });
   beforeEach(function() {
     sinon.spy(adapter, '_execute');
