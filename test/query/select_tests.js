@@ -112,6 +112,12 @@ describe('SelectQuery', __query(function(query, adapter) {
     );
   });
 
+  it('can be limited with offset', function() {
+    expect(select('users').limit(5).offset(2)).to.be.query(
+      'SELECT * FROM "users" LIMIT 5 OFFSET 2', []
+    );
+  });
+
   it('handles predicates', function() {
     expect(select('articles').where({ words$gt: 200 })).to.be.query(
       'SELECT * FROM "articles" WHERE "words" > ?', [200]
