@@ -30,6 +30,7 @@ global.__connect = function(config, fn) {
   };
 };
 
+chai.use(require('sinon-chai'));
 chai.use(function (_chai, _) {
   var Assertion = _chai.Assertion;
   Assertion.addMethod('query', function(sql, args) {

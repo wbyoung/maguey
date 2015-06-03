@@ -4,7 +4,7 @@ require('../helpers');
 
 var chai = require('chai');
 var expect = chai.expect;
-var sinon = require('sinon'); chai.use(require('sinon-chai'));
+var sinon = require('sinon');
 
 var EntryQuery = require('../../lib/query/entry');
 var TransactionQuery = require('../../lib/query/transaction');

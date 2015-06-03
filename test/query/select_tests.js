@@ -4,7 +4,7 @@ require('../helpers');
 
 var chai = require('chai');
 var expect = chai.expect;
-var sinon = require('sinon'); chai.use(require('sinon-chai'));
+var sinon = require('sinon');
 
 var SelectQuery = require('../../lib/query/select');
 var Condition = require('../../lib/condition'), f = Condition.f;

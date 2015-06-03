@@ -11,7 +11,7 @@ if (!/^(1|true)$/i.test(process.env.TEST_POSTGRES || '1')) { return; }
 
 var chai = require('chai');
 var expect = chai.expect;
-var sinon = require('sinon'); chai.use(require('sinon-chai'));
+var sinon = require('sinon');
 
 var EntryQuery = require('../../lib/query/entry');
 var schema;
