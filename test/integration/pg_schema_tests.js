@@ -104,6 +104,26 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
         .then(done, done);
       });
 
+      it('can drop and add columns at the same time', function(done) {
+        var alter = schema.alterTable('people', function(table) {
+          table.drop('first_name');
+          table.text('bio');
+        });
+
+        expect(alter.sql).to.eql('ALTER TABLE "people" ' +
+          'DROP COLUMN "first_name", ' +
+          'ADD COLUMN "bio" text');
+
+        alter.then(function() {
+          var c = executedSQL()[0][0];
+          expect(executedSQL()).to.eql([
+            [c, 'ALTER TABLE "people" DROP COLUMN "first_name", ' +
+              'ADD COLUMN "bio" text', []],
+          ]);
+        })
+        .then(done, done);
+      });
+
       it('can rename two columns', function(done) {
         var alter = schema.alterTable('people', function(table) {
           table.rename('id', 'identifier', 'integer');
