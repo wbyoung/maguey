@@ -4,18 +4,15 @@ if (!/^(1|true)$/i.test(process.env.TEST_SQLITE || '1')) { return; }
 
 var _ = require('lodash');
 var expect = require('chai').expect;
-var Database = require('../../lib/database');
+var helpers = require('../helpers');
 var Promise = require('bluebird');
-
-var shared = require('./shared_behaviors');
 var returning = require('../../lib/adapters/mixins/returning');
 var PseudoReturn = returning.PseudoReturn;
 
-var db, connection = {
-  adapter: 'sqlite3',
-  connection: {
-    filename: ''
-  }
+var shared = require('./shared_behaviors');
+var connect = helpers.connect;
+var config = {
+  filename: ''
 };
 
 var resetSequence = Promise.method(function(/*table*/) {
@@ -34,11 +31,10 @@ var castDatabaseValue = function(type, value, options) {
   return value;
 };
 
-describe('SQLite3', function() {
-  before(function() { db = this.db = Database.create(connection); });
+describe('SQLite3', connect('sqlite3', config, function(query, adapter) {
+  before(function() { this.query = query; });
   before(function() { this.resetSequence = resetSequence; });
   before(function() { this.castDatabaseValue = castDatabaseValue; });
-  after(function(done) { db.disconnect().then(done, done); });
 
   it('executes raw sql', function(done) {
     var returnId = PseudoReturn.create('id');
@@ -51,7 +47,7 @@ describe('SQLite3', function() {
     ];
     Promise.reduce(queries, function(array, info) {
       var query = info[0], args = info[1] || [];
-      return db._adapter.execute(query, args).then(function(result) {
+      return adapter.execute(query, args).then(function(result) {
         return array.concat([result]);
       });
     }, [])
@@ -71,7 +67,7 @@ describe('SQLite3', function() {
   it('receives rows from raw sql', function(done) {
     var query = 'SELECT CAST(? AS INTEGER) AS number';
     var args = ['1'];
-    db._adapter.execute(query, args)
+    adapter.execute(query, args)
     .then(function(result) {
       expect(result.rows).to.eql([{ number: 1 }]);
     })
@@ -81,7 +77,7 @@ describe('SQLite3', function() {
   it('reports errors', function(done) {
     var query = 'SELECT & FROM ^';
     var args = [];
-    db._adapter.execute(query, args)
+    adapter.execute(query, args)
     .throw(new Error('Expected query to fail.'))
     .catch(function(e) {
       expect(e.message).to.match(/SQLITE_ERROR.*syntax/i);
@@ -91,19 +87,19 @@ describe('SQLite3', function() {
 
   describe('with simple table', function() {
     before(function(done) {
-      db._adapter
+      adapter
         .execute('CREATE TABLE azul_test (id serial, name varchar(255))', [])
         .then(_.ary(done, 0), done);
     });
 
     after(function(done) {
-      db._adapter
+      adapter
         .execute('DROP TABLE azul_test', [])
         .then(_.ary(done, 0), done);
     });
 
     it('returning does not work on non primary key', function(done) {
-      db.insert('azul_test', { name: 'Azul' })
+      query.insert('azul_test', { name: 'Azul' })
       .returning('name')
       .then(function(data) {
         expect(data.rows[0].name).to.not.eql('Azul');
@@ -120,4 +116,4 @@ describe('SQLite3', function() {
     }
     fn();
   });
-});
+}));

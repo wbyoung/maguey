@@ -1,22 +1,16 @@
 'use strict';
 
-var expect = require('chai').expect;
-
 var _ = require('lodash');
-var Database = require('../../lib/database');
-var Schema = require('../../lib/schema');
+var expect = require('chai').expect;
+var helpers = require('../helpers');
+
 var ReverseSchema = require('../../lib/schema/reverse');
-var FakeAdapter = require('../fakes/adapter');
-var Statement = require('../../lib/types/statement');
+var Schema = require('../../lib/schema');
+var test = helpers.withEntry;
+var schema;
 
-var db, adapter, schema;
-
-describe('ReverseSchema', function() {
-  before(function() {
-    adapter = FakeAdapter.create({});
-    db = Database.create({ adapter: adapter });
-    schema = db.schema.reverse();
-  });
+describe('ReverseSchema', test(function(query) {
+  beforeEach(function() { schema = query.schema().reverse(); });
 
   it('cannot be created directly', function() {
     expect(function() {
@@ -36,9 +30,9 @@ describe('ReverseSchema', function() {
       var query = schema.createTable('users', function(table) {
         table.string('name');
       });
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'DROP TABLE "users"', []
-      ));
+      );
     });
 
   });
@@ -49,36 +43,36 @@ describe('ReverseSchema', function() {
       var query = schema.alterTable('users', function(table) {
         table.string('name');
       });
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'ALTER TABLE "users" DROP COLUMN "name"', []
-      ));
+      );
     });
 
     it('reverses renaming a column', function() {
       var query = schema.alterTable('users', function(table) {
         table.rename('name', 'newname', 'string');
       });
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'ALTER TABLE "users" RENAME "newname" TO "name"', []
-      ));
+      );
     });
 
     it('reverses adding an index', function() {
       var query = schema.alterTable('users', function(table) {
         table.index(['first', 'last']);
       });
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'DROP INDEX "users_first_last_idx"', []
-      ));
+      );
     });
 
     it('reverses renaming an index', function() {
       var query = schema.alterTable('users', function(table) {
         table.renameIndex('a', 'b');
       });
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'ALTER INDEX "b" RENAME TO "a"', []
-      ));
+      );
     });
 
     it('is not reversible when columns are dropped', function() {
@@ -113,9 +107,9 @@ describe('ReverseSchema', function() {
 
     it('reverses', function() {
       var query = schema.renameTable('users', 'accounts');
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'ALTER TABLE "accounts" RENAME TO "users"', []
-      ));
+      );
     });
 
   });
@@ -143,4 +137,4 @@ describe('ReverseSchema', function() {
       .value();
     expect(notOverridden).to.eql([]);
   });
-});
+}));

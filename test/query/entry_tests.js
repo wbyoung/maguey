@@ -2,33 +2,26 @@
 
 var chai = require('chai');
 var expect = chai.expect;
+var helpers = require('../helpers');
 
-var Database = require('../../lib/database');
 var EntryQuery = require('../../lib/query/entry');
-var FakeAdapter = require('../fakes/adapter');
+var test = helpers.withEntry;
 
-var db, adapter;
-
-describe('EntryQuery', function() {
-  before(function() {
-    adapter = FakeAdapter.create({});
-    db = Database.create({ adapter: adapter });
-  });
-
+describe('EntryQuery', test(function(query, adapter) {
   it('can be created directly', function() {
     expect(function() { EntryQuery.create(adapter); }).to.not.throw();
   });
 
   it('cannot generate sql', function() {
-    expect(function() { db.query.statement; })
+    expect(function() { query.statement; })
       .throw(/must first call.*`select`.*on query/i);
-    expect(function() { db.query.statement; })
+    expect(function() { query.statement; })
       .throw(/must first call.*`update`.*on query/i);
-    expect(function() { db.query.statement; })
+    expect(function() { query.statement; })
       .throw(/must first call.*`insert`.*on query/i);
-    expect(function() { db.query.statement; })
+    expect(function() { query.statement; })
       .throw(/must first call.*`delete`.*on query/i);
-    expect(function() { db.query.statement; })
+    expect(function() { query.statement; })
       .throw(/must first call.*`raw`.*on query/i);
   });
-});
+}));

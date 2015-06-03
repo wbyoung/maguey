@@ -5,29 +5,23 @@ if (!/^(1|true)$/i.test(process.env.TEST_SQLITE || '1')) { return; }
 var chai = require('chai');
 var expect = chai.expect;
 var sinon = require('sinon'); chai.use(require('sinon-chai'));
-var Database = require('../../lib/database');
+var helpers = require('../helpers');
+var connect = helpers.connect;
+var schema;
 
-var db, executedSQL, connection = {
-  adapter: 'mysql',
-  connection: {
-    user: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || '',
-    database: process.env.MYSQL_DATABASE || 'azul_test'
-  }
+var executedSQL, config = {
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || '',
+  database: process.env.MYSQL_DATABASE || 'azul_test'
 };
 
-describe('MySQL schema', function() {
-  before(function(done) {
-    db = Database.create(connection);
-    db.query.raw('select 1').execute().return().then(done, done);
-  });
-  after(function(done) { db.disconnect().then(done, done); });
-
+describe('MySQL schema', connect('mysql', config, function(query, adapter) {
+  beforeEach(function() { schema = query.schema(); });
   beforeEach(function() {
-    sinon.spy(db._adapter, '_execute');
+    sinon.spy(adapter, '_execute');
     executedSQL = function() {
       var result = [];
-      db._adapter._execute.getCalls().forEach(function(call) {
+      adapter._execute.getCalls().forEach(function(call) {
         result.push(call.args.slice(0,3));
       });
       return result;
@@ -35,12 +29,12 @@ describe('MySQL schema', function() {
   });
 
   afterEach(function() {
-    db._adapter._execute.restore();
+    adapter._execute.restore();
   });
 
   describe('creating a table', function() {
     beforeEach(function(done) {
-      db.schema.createTable('people', function(table) {
+      schema.createTable('people', function(table) {
         table.serial('id').pk().notNull();
         table.string('first_name');
         table.integer('best_friend_id').references('id');
@@ -52,7 +46,7 @@ describe('MySQL schema', function() {
     });
 
     afterEach(function(done) {
-      db.schema.dropTable('people')
+      schema.dropTable('people')
         .execute()
         .return()
         .then(done, done);
@@ -70,12 +64,12 @@ describe('MySQL schema', function() {
 
     describe('after creation', function() {
       beforeEach(function() {
-        db._adapter._execute.restore();
-        sinon.spy(db._adapter, '_execute');
+        adapter._execute.restore();
+        sinon.spy(adapter, '_execute');
       });
 
       it('can rename columns', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.rename('first_name', 'first', 'string');
         });
 
@@ -92,7 +86,7 @@ describe('MySQL schema', function() {
       });
 
       it('can add an index', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.index(['first_name', 'best_friend_id']);
         });
 
@@ -112,7 +106,7 @@ describe('MySQL schema', function() {
       });
 
       it('can drop an index', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.dropIndex('first_name');
         });
 
@@ -129,7 +123,7 @@ describe('MySQL schema', function() {
       });
 
       it('can rename an index', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.renameIndex('people_first_name_idx', 'bff_idx');
         });
 
@@ -153,7 +147,7 @@ describe('MySQL schema', function() {
       });
 
       it('can add a column and named index', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.string('last_name');
           table.index('last_name', { name: 'surname_index' });
         });
@@ -173,7 +167,7 @@ describe('MySQL schema', function() {
       });
 
       it('can add, rename, & index simultaneously', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.string('last');
           table.rename('first_name', 'first', 'string');
           table.index(['first', 'last']);
@@ -209,7 +203,7 @@ describe('MySQL schema', function() {
       });
 
       it('can add columns with foreign keys', function(done) {
-        db.schema.alterTable('people', function(table) {
+        schema.alterTable('people', function(table) {
           table.integer('worst_enemy_id').references('id');
         })
         .then(function() {
@@ -229,23 +223,23 @@ describe('MySQL schema', function() {
     beforeEach(function(done) {
       var sql = 'CREATE TABLE `people` (`id` integer ' +
         'PRIMARY KEY, `name` varchar(255), UNIQUE INDEX (`name`(2)))';
-      db.query.raw(sql)
+      query.raw(sql)
       .then(function() {
-        db._adapter._execute.restore();
-        sinon.spy(db._adapter, '_execute');
+        adapter._execute.restore();
+        sinon.spy(adapter, '_execute');
       })
       .then(done, done);
     });
 
     afterEach(function(done) {
-      db.schema.dropTable('people')
+      schema.dropTable('people')
         .execute()
         .return()
         .then(done, done);
     });
 
     it('can rename an index', function(done) {
-      var alter = db.schema.alterTable('people', function(table) {
+      var alter = schema.alterTable('people', function(table) {
         table.renameIndex('name', 'name_idx');
       });
 
@@ -269,4 +263,4 @@ describe('MySQL schema', function() {
     });
   });
 
-});
+}));

@@ -9,21 +9,19 @@ if (!/^(1|true)$/i.test(process.env.TEST_POSTGRES || '1')) { return; }
 
 var _ = require('lodash');
 var expect = require('chai').expect;
-var Database = require('../../lib/database');
+var helpers = require('../helpers');
 var Promise = require('bluebird');
-var shared = require('./shared_behaviors');
 
-var db, connection = {
-  adapter: 'pg',
-  connection: {
-    user: process.env.PG_USER || 'root',
-    password: process.env.PG_PASSWORD || '',
-    database: process.env.PG_DATABASE || 'azul_test'
-  }
+var shared = require('./shared_behaviors');
+var connect = helpers.connect;
+var config = {
+  user: process.env.PG_USER || 'root',
+  password: process.env.PG_PASSWORD || '',
+  database: process.env.PG_DATABASE || 'azul_test'
 };
 
 var resetSequence = function(table) {
-  return db.query.raw('ALTER SEQUENCE ' + table + '_id_seq restart');
+  return this.query.raw('ALTER SEQUENCE ' + table + '_id_seq restart');
 };
 
 var castDatabaseValue = function(type, value) {
@@ -34,11 +32,10 @@ var castDatabaseValue = function(type, value) {
   return value;
 };
 
-describe('PostgreSQL', function() {
-  before(function() { db = this.db = Database.create(connection); });
+describe('PostgreSQL', connect('pg', config, function(query, adapter) {
+  before(function() { this.query = query; });
   before(function() { this.resetSequence = resetSequence; });
   before(function() { this.castDatabaseValue = castDatabaseValue; });
-  after(function(done) { db.disconnect().then(done, done); });
 
   it('executes raw sql', function(done) {
     var queries = [
@@ -49,7 +46,7 @@ describe('PostgreSQL', function() {
     ];
     Promise.reduce(queries, function(array, info) {
       var query = info[0], args = info[1] || [];
-      return db._adapter.execute(query, args).then(function(result) {
+      return adapter.execute(query, args).then(function(result) {
         return array.concat([result]);
       });
     }, [])
@@ -69,7 +66,7 @@ describe('PostgreSQL', function() {
   it('receives rows from raw sql', function(done) {
     var query = 'SELECT $1::int AS number';
     var args = ['1'];
-    db._adapter.execute(query, args)
+    adapter.execute(query, args)
     .then(function(result) {
       expect(result.rows).to.eql([{ number: 1 }]);
     })
@@ -79,7 +76,7 @@ describe('PostgreSQL', function() {
   it('reports errors', function(done) {
     var query = 'SELECT & FROM ^';
     var args = [];
-    db._adapter.execute(query, args)
+    adapter.execute(query, args)
     .throw(new Error('Expected query to fail.'))
     .catch(function(e) {
       expect(e.message).to.match(/syntax error/i);
@@ -89,19 +86,19 @@ describe('PostgreSQL', function() {
 
   describe('with simple table', function() {
     before(function(done) {
-      db._adapter
+      adapter
         .execute('CREATE TABLE azul_test (id serial, name varchar(255))', [])
         .then(_.ary(done, 0), done);
     });
 
     after(function(done) {
-      db._adapter
+      adapter
         .execute('DROP TABLE azul_test', [])
         .then(_.ary(done, 0), done);
     });
 
     it('allows use of returning on non primary key', function(done) {
-      db.insert('azul_test', { name: 'Azul' })
+      query.insert('azul_test', { name: 'Azul' })
       .returning('name')
       .then(_.partial(_.omit, _, 'client'))
       .then(function(data) {
@@ -111,8 +108,8 @@ describe('PostgreSQL', function() {
     });
 
     it('allows use of returning for full row', function(done) {
-      resetSequence('azul_test').then(function() {
-        return db.insert('azul_test', { name: 'Azul' }).returning('*');
+      resetSequence.call(this, 'azul_test').then(function() {
+        return query.insert('azul_test', { name: 'Azul' }).returning('*');
       })
       .then(_.partial(_.omit, _, 'client'))
       .then(function(data) {
@@ -132,4 +129,4 @@ describe('PostgreSQL', function() {
     }
     fn();
   });
-});
+}));

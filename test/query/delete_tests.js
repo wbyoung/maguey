@@ -2,18 +2,14 @@
 
 var chai = require('chai');
 var expect = chai.expect;
+var helpers = require('../helpers');
 
-var Database = require('../../lib/database');
 var DeleteQuery = require('../../lib/query/delete');
-var FakeAdapter = require('../fakes/adapter');
-var Statement = require('../../lib/types/statement');
+var test = helpers.withEntry;
+var del;
 
-var db;
-
-describe('DeleteQuery', function() {
-  before(function() {
-    db = Database.create({ adapter: FakeAdapter.create({}) });
-  });
+describe('DeleteQuery', test(function(query) {
+  beforeEach(function() { del = query.delete.bind(query); });
 
   it('cannot be created directly', function() {
     expect(function() {
@@ -22,14 +18,11 @@ describe('DeleteQuery', function() {
   });
 
   it('deletes data', function() {
-    expect(db.delete('users').statement).to.eql(Statement.create(
-      'DELETE FROM "users"', []
-    ));
+    expect(del('users')).to.be.query('DELETE FROM "users"', []);
   });
 
   it('can be filtered', function() {
-    expect(db.delete('users').where({ id: 1 }).statement).to.eql(Statement.create(
-      'DELETE FROM "users" WHERE "id" = ?', [1]
-    ));
+    expect(del('users').where({ id: 1 }))
+      .to.be.query('DELETE FROM "users" WHERE "id" = ?', [1]);
   });
-});
+}));

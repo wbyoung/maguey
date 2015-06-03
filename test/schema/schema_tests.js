@@ -1,20 +1,14 @@
 'use strict';
 
 var expect = require('chai').expect;
+var helpers = require('../helpers');
 
-var Database = require('../../lib/database');
 var Schema = require('../../lib/schema');
-var FakeAdapter = require('../fakes/adapter');
-var Statement = require('../../lib/types/statement');
+var test = helpers.withEntry;
+var schema;
 
-var db, adapter, schema;
-
-describe('Schema', function() {
-  before(function() {
-    adapter = FakeAdapter.create({});
-    db = Database.create({ adapter: adapter });
-    schema = db.schema;
-  });
+describe('Schema', test(function(query) {
+  beforeEach(function() { schema = query.schema(); });
 
   it('cannot be created directly', function() {
     expect(function() {
@@ -34,10 +28,10 @@ describe('Schema', function() {
       var query = schema.createTable('users', function(table) {
         table.string('name');
       });
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'CREATE TABLE "users" '+
         '("id" serial PRIMARY KEY, "name" varchar(255))', []
-      ));
+      );
     });
 
     it('generates the proper sql with multiple columns', function() {
@@ -45,19 +39,19 @@ describe('Schema', function() {
         table.serial('id');
         table.string('name');
       });
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'CREATE TABLE "users" ("id" serial PRIMARY KEY, ' +
         '"name" varchar(255))', []
-      ));
+      );
     });
 
     it('supports #unlessExists()', function() {
       var query = schema.createTable('users', function(table) {
         table.serial('id');
       }).unlessExists();
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'CREATE TABLE IF NOT EXISTS "users" ("id" serial PRIMARY KEY)', []
-      ));
+      );
     });
 
     describe('types', function() {
@@ -65,9 +59,9 @@ describe('Schema', function() {
         var query = schema.createTable('users', function(table) {
           table.serial('id');
         });
-        expect(query.statement).to.eql(Statement.create(
+        expect(query).to.be.query(
           'CREATE TABLE "users" ("id" serial PRIMARY KEY)', []
-        ));
+        );
       });
     });
 
@@ -84,16 +78,16 @@ describe('Schema', function() {
 
     it('generates the proper sql', function() {
       var query = schema.dropTable('users');
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'DROP TABLE "users"', []
-      ));
+      );
     });
 
     it('supports #ifExists()', function() {
       var query = schema.dropTable('users').ifExists();
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'DROP TABLE IF EXISTS "users"', []
-      ));
+      );
     });
   });
 
@@ -101,10 +95,10 @@ describe('Schema', function() {
 
     it('generates the proper sql', function() {
       var query = schema.renameTable('users', 'accounts');
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'ALTER TABLE "users" RENAME TO "accounts"', []
-      ));
+      );
     });
 
   });
-});
+}));

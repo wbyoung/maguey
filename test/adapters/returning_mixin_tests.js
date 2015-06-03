@@ -4,13 +4,13 @@ var expect = require('chai').expect;
 
 var Promise = require('bluebird');
 var Adapter = require('../../lib/adapters/base');
-var Database = require('../../lib/database');
+var EntryQuery = require('../../lib/query/entry');
 var returning = require('../../lib/adapters/mixins/returning'),
   EmbedPseudoReturn = returning.EmbedPseudoReturn,
   ExtractPseudoReturn = returning.ExtractPseudoReturn;
 
 var CustomAdapter,
-  db,
+  query,
   adapter;
 
 describe('Adapter with PseudoReturn', function() {
@@ -27,7 +27,7 @@ describe('Adapter with PseudoReturn', function() {
     CustomAdapter.Phrasing.reopen(EmbedPseudoReturn);
     CustomAdapter.reopen(ExtractPseudoReturn);
     adapter = CustomAdapter.create({});
-    db = Database.create({ adapter: adapter });
+    query = EntryQuery.create(adapter);
   });
 
   describe('when returning is called with no arguments', function() {
@@ -39,7 +39,7 @@ describe('Adapter with PseudoReturn', function() {
     });
 
     it('adds the an undefined value to the result', function(done) {
-      db.insert('users', { username: 'wbyoung' }).returning('identifier')
+      query.insert('users', { username: 'wbyoung' }).returning('identifier')
       .then(function(result) {
         expect(result.rows[0]).to.haveOwnProperty('identifier');
         expect(result.rows[0].identifier).to.not.exist;

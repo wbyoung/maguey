@@ -1,22 +1,16 @@
 'use strict';
 
-var expect = require('chai').expect;
-
 var _ = require('lodash');
-var Database = require('../../lib/database');
-var Schema = require('../../lib/schema');
+var expect = require('chai').expect;
+var helpers = require('../helpers');
+
 var ReversibleSchema = require('../../lib/schema/reversible');
-var FakeAdapter = require('../fakes/adapter');
-var Statement = require('../../lib/types/statement');
+var Schema = require('../../lib/schema');
+var test = helpers.withEntry;
+var schema;
 
-var db, adapter, schema;
-
-describe('ReversibleSchema', function() {
-  before(function() {
-    adapter = FakeAdapter.create({});
-    db = Database.create({ adapter: adapter });
-    schema = db.schema.reversible();
-  });
+describe('ReversibleSchema', test(function(query) {
+  beforeEach(function() { schema = query.schema().reversible(); });
 
   it('cannot be created directly', function() {
     expect(function() {
@@ -36,10 +30,10 @@ describe('ReversibleSchema', function() {
       var query = schema.createTable('users', function(table) {
         table.string('name');
       });
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'CREATE TABLE "users" '+
         '("id" serial PRIMARY KEY, "name" varchar(255))', []
-      ));
+      );
     });
 
   });
@@ -50,9 +44,9 @@ describe('ReversibleSchema', function() {
       var query = schema.alterTable('users', function(table) {
         table.string('name');
       });
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'ALTER TABLE "users" ADD COLUMN "name" varchar(255)', []
-      ));
+      );
     });
 
     it('is not reversible when columns are dropped', function() {
@@ -77,9 +71,9 @@ describe('ReversibleSchema', function() {
 
     it('is reversible', function() {
       var query = schema.renameTable('users', 'accounts');
-      expect(query.statement).to.eql(Statement.create(
+      expect(query).to.be.query(
         'ALTER TABLE "users" RENAME TO "accounts"', []
-      ));
+      );
     });
 
   });
@@ -117,4 +111,4 @@ describe('ReversibleSchema', function() {
       .value();
     expect(notOverridden).to.eql([]);
   });
-});
+}));

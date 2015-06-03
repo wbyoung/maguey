@@ -4,36 +4,40 @@ var chai = require('chai');
 var expect = chai.expect;
 var sinon = require('sinon'); chai.use(require('sinon-chai'));
 
-var Database = require('../../lib/database');
+var EntryQuery = require('../../lib/query/entry');
 var TransactionQuery = require('../../lib/query/transaction');
 var FakeAdapter = require('../fakes/adapter');
 var Statement = require('../../lib/types/statement');
 var BaseQuery = require('../../lib/query/base');
 var Promise = require('bluebird');
 
-var db;
+var transaction;
+var query;
+var adapter;
 
 describe('Transaction Mixin', function() {
-  before(function() {
-    db = Database.create({ adapter: FakeAdapter.create({}) });
+  beforeEach(function() {
+    adapter = FakeAdapter.create({});
+    query = EntryQuery.create(adapter);
+    transaction = query.transaction.bind(query);
   });
 
   beforeEach(function(done) {
     // spy after pool has been set up. the only way to tell is to get a
     // client and release it.
-    db._adapter.pool.acquireAsync().then(function(client) {
-      db._adapter.pool.release(client);
-      sinon.spy(db._adapter, '_execute');
-      sinon.spy(db._adapter.pool, 'acquire');
-      sinon.spy(db._adapter.pool, 'release');
+    query._adapter.pool.acquireAsync().then(function(client) {
+      query._adapter.pool.release(client);
+      sinon.spy(query._adapter, '_execute');
+      sinon.spy(query._adapter.pool, 'acquire');
+      sinon.spy(query._adapter.pool, 'release');
     })
     .done(done, done);
   });
 
   afterEach(function() {
-    db._adapter._execute.restore();
-    db._adapter.pool.acquire.restore();
-    db._adapter.pool.release.restore();
+    query._adapter._execute.restore();
+    query._adapter.pool.acquire.restore();
+    query._adapter.pool.release.restore();
   });
 
   it('cannot be created directly', function() {
@@ -62,7 +66,7 @@ describe('Transaction Mixin', function() {
 
   describe('when begun', function() {
     beforeEach(function() {
-      this.transaction = db.transaction();
+      this.transaction = transaction();
       this.begin = this.transaction.begin();
     });
 
@@ -106,7 +110,7 @@ describe('Transaction Mixin', function() {
         return this.transaction.commit();
       })
       .then(function() {
-        expect(db._adapter._execute).to.have.been
+        expect(query._adapter._execute).to.have.been
           .calledWithExactly(this.client, 'COMMIT', []);
       })
       .done(done, done);
@@ -120,7 +124,7 @@ describe('Transaction Mixin', function() {
         return this.transaction.rollback();
       })
       .then(function() {
-        expect(db._adapter._execute).to.have.been
+        expect(query._adapter._execute).to.have.been
           .calledWithExactly(this.client, 'ROLLBACK', []);
       })
       .done(done, done);
@@ -134,7 +138,7 @@ describe('Transaction Mixin', function() {
         return this.transaction.commit().clone();
       })
       .then(function() {
-        expect(db._adapter._execute).to.have.been
+        expect(query._adapter._execute).to.have.been
           .calledWithExactly(this.client, 'COMMIT', []);
       })
       .done(done, done);
@@ -143,13 +147,14 @@ describe('Transaction Mixin', function() {
     it('releases client back to pool on commit', function(done) {
       this.begin.execute().bind(this)
       .then(function() { return this.transaction.acquireClient(); })
+      .then(function(client) { this.client = client; })
       .then(function() {
         return this.transaction.commit();
       })
       .then(function() {
-        expect(db._adapter.pool.acquire).to.have.been.calledOnce;
-        expect(db._adapter.pool.release).to.have.been.calledOnce;
-        expect(db._adapter.pool.release).to.have.been
+        expect(query._adapter.pool.acquire).to.have.been.calledOnce;
+        expect(query._adapter.pool.release).to.have.been.calledOnce;
+        expect(query._adapter.pool.release).to.have.been
           .calledWithExactly(this.client);
       })
       .done(done, done);
@@ -174,7 +179,7 @@ describe('Transaction Mixin', function() {
     });
 
     it('cannot execute query before begin', function(done) {
-      db.select('users').transaction(this.transaction).execute().bind(this)
+      query.select('users').transaction(this.transaction).execute().bind(this)
       .throw(new Error('Expected query execution to fail.'))
       .catch(function(e) {
         expect(e).to.match(/execute.*transaction.*not open/i);
@@ -195,7 +200,7 @@ describe('Transaction Mixin', function() {
 
     describe('a select that uses the transaction', function() {
       beforeEach(function() {
-        this.selectQuery = db.select('users').transaction(this.transaction);
+        this.selectQuery = query.select('users').transaction(this.transaction);
       });
 
       it('generates standard sql', function() {
@@ -249,7 +254,7 @@ describe('Transaction Mixin', function() {
           var acquireClient = this.transaction.acquireClient;
           var promise = acquireClient.getCall(0).returnValue;
           var client = promise.value();
-          expect(db._adapter._execute).to.have.been
+          expect(query._adapter._execute).to.have.been
             .calledWithExactly(client, 'SELECT * FROM "users"', []);
         });
       });
@@ -259,32 +264,32 @@ describe('Transaction Mixin', function() {
       // note that we're intentionally not executing this.begin in this test &
       // expect that everything will still work as expected.
       var txn = this.transaction;
-      var query = db.query.transaction(txn);
+      var txnQuery = query.transaction(txn);
       var client;
       Promise.resolve()
       .then(function() { return txn.begin(); })
       .then(function() { return txn.acquireClient(); })
       .then(function(_client) { client = _client; })
-      .then(function() { return query.select('users'); })
+      .then(function() { return txnQuery.select('users'); })
       .then(function() { return txn.begin(); })
-      .then(function() { return query.select('articles'); })
-      .then(function() { return query.select('comments'); })
+      .then(function() { return txnQuery.select('articles'); })
+      .then(function() { return txnQuery.select('comments'); })
       .then(function() { return txn.commit(); })
       .then(function() { return txn.commit(); })
       .then(function() {
-          expect(db._adapter._execute.getCall(0)).to.have.been
+          expect(txnQuery._adapter._execute.getCall(0)).to.have.been
             .calledWithExactly(client, 'BEGIN', []);
-          expect(db._adapter._execute.getCall(1)).to.have.been
+          expect(txnQuery._adapter._execute.getCall(1)).to.have.been
             .calledWithExactly(client, 'SELECT * FROM "users"', []);
-          expect(db._adapter._execute.getCall(2)).to.have.been
+          expect(txnQuery._adapter._execute.getCall(2)).to.have.been
             .calledWithExactly(client, 'BEGIN', []);
-          expect(db._adapter._execute.getCall(3)).to.have.been
+          expect(txnQuery._adapter._execute.getCall(3)).to.have.been
             .calledWithExactly(client, 'SELECT * FROM "articles"', []);
-          expect(db._adapter._execute.getCall(4)).to.have.been
+          expect(txnQuery._adapter._execute.getCall(4)).to.have.been
             .calledWithExactly(client, 'SELECT * FROM "comments"', []);
-          expect(db._adapter._execute.getCall(5)).to.have.been
+          expect(txnQuery._adapter._execute.getCall(5)).to.have.been
             .calledWithExactly(client, 'COMMIT', []);
-          expect(db._adapter._execute.getCall(6)).to.have.been
+          expect(txnQuery._adapter._execute.getCall(6)).to.have.been
             .calledWithExactly(client, 'COMMIT', []);
       })
       .done(done, done);

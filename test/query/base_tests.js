@@ -5,12 +5,13 @@ var expect = chai.expect;
 
 var BaseQuery = require('../../lib/query/base');
 var FakeAdapter = require('../fakes/adapter');
-
 var query;
+var adapter;
 
 describe('BaseQuery', function() {
   beforeEach(function() {
-    query = BaseQuery.create(FakeAdapter.create({}));
+    adapter = FakeAdapter.create({});
+    query = BaseQuery.create(adapter);
   });
 
   it('cannot generate sql', function() {

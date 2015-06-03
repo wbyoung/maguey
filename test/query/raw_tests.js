@@ -4,19 +4,16 @@ var _ = require('lodash');
 var chai = require('chai');
 var expect = chai.expect;
 var sinon = require('sinon'); chai.use(require('sinon-chai'));
+var helpers = require('../helpers');
 
-var Database = require('../../lib/database');
 var RawQuery = require('../../lib/query/raw');
-var FakeAdapter = require('../fakes/adapter');
 var Statement = require('../../lib/types/statement');
 var Promise = require('bluebird');
+var test = helpers.withEntry;
+var raw;
 
-var db;
-
-describe('RawQuery', function() {
-  before(function() {
-    db = Database.create({ adapter: FakeAdapter.create({}) });
-  });
+describe('RawQuery', test(function(query, adapter) {
+  beforeEach(function() { raw = query.raw.bind(query); });
 
   it('cannot be created directly', function() {
     expect(function() {
@@ -26,30 +23,30 @@ describe('RawQuery', function() {
 
   it('can be created with a statement', function() {
     var statement = Statement.create('SELECT * FROM "jobs"', []);
-    expect(db.query.raw(statement).statement).to.eql(statement);
+    expect(raw(statement).statement).to.eql(statement);
   });
 
   it('cannot be created with a statement and args', function() {
     var statement = Statement.create('SELECT * FROM "jobs"', []);
-    expect(function() { db.query.raw(statement, []); })
+    expect(function() { raw(statement, []); })
       .to.throw(/not provide.*statement.*args/i);
   });
 
   it('can be created without args', function() {
-    expect(db.query.raw('SELECT * FROM "jobs"').statement).to.eql(Statement.create(
+    expect(raw('SELECT * FROM "jobs"')).to.be.query(
       'SELECT * FROM "jobs"', []
-    ));
+    );
   });
 
   it('can be created args', function() {
-    var query = db.query.raw('SELECT * FROM "jobs" where "id" = ?', [1]);
-    expect(query.statement).to.eql(Statement.create(
+    var query = raw('SELECT * FROM "jobs" where "id" = ?', [1]);
+    expect(query).to.be.query(
       'SELECT * FROM "jobs" where "id" = ?', [1]
-    ));
+    );
   });
 
   it('can be duplicated', function() {
-    var query = db.query.raw('SELECT * FROM "jobs" where "id" = ?', [1]);
+    var query = raw('SELECT * FROM "jobs" where "id" = ?', [1]);
     var dup = query._dup();
     expect(_.pick(query, '_sql', '_args'))
       .to.eql(_.pick(dup, '_sql', '_args'));
@@ -57,19 +54,12 @@ describe('RawQuery', function() {
     expect(query).to.not.equal(dup);
   });
 
-  describe('from db', function() {
-    var query;
-
-    beforeEach(function() {
-      query = db.query.raw('select * from "jobs"');
-      sinon.spy(query._adapter, 'execute');
-    });
-
-    afterEach(function() {
-      query._adapter.execute.restore();
-    });
+  describe('while spying on adapter', function() {
+    beforeEach(function() { sinon.spy(adapter, 'execute'); });
+    afterEach(function() { adapter.execute.restore(); });
 
     it('will not execute more than once', function(done) {
+      var query = raw('select * from "jobs"');
       Promise.settle([
         query.execute(),
         query.execute(),
@@ -81,4 +71,4 @@ describe('RawQuery', function() {
     });
   });
 
-});
+}));

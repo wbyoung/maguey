@@ -5,28 +5,23 @@ if (!/^(1|true)$/i.test(process.env.TEST_SQLITE || '1')) { return; }
 var chai = require('chai');
 var expect = chai.expect;
 var sinon = require('sinon'); chai.use(require('sinon-chai'));
-var Database = require('../../lib/database');
-var EntryQuery = require('../../lib/query/entry');
+var helpers = require('../helpers');
 
-var db, executedSQL, connection = {
-  adapter: 'sqlite3',
-  connection: {
-    filename: ''
-  }
+var EntryQuery = require('../../lib/query/entry');
+var connect = helpers.connect;
+var schema;
+
+var executedSQL, config = {
+  filename: ''
 };
 
-describe('SQLite3 schema', function() {
-  before(function(done) {
-    db = Database.create(connection);
-    db.query.raw('select 1').execute().return().then(done, done);
-  });
-  after(function(done) { db.disconnect().then(done, done); });
-
+describe('SQLite3 schema', connect('sqlite3', config, function(query, adapter) {
+  beforeEach(function() { schema = query.schema(); });
   beforeEach(function() {
-    sinon.spy(db._adapter, '_execute');
+    sinon.spy(adapter, '_execute');
     executedSQL = function() {
       var result = [];
-      db._adapter._execute.getCalls().forEach(function(call) {
+      adapter._execute.getCalls().forEach(function(call) {
         result.push(call.args.slice(0,3));
       });
       return result;
@@ -34,12 +29,12 @@ describe('SQLite3 schema', function() {
   });
 
   afterEach(function() {
-    db._adapter._execute.restore();
+    adapter._execute.restore();
   });
 
   describe('creating a table', function() {
     beforeEach(function(done) {
-      this.create = db.schema.createTable('people', function(table) {
+      this.create = schema.createTable('people', function(table) {
         table.serial('id').pk().notNull();
         table.string('first_name');
         table.integer('best_friend_id').references('id').default(1);
@@ -49,7 +44,7 @@ describe('SQLite3 schema', function() {
     });
 
     afterEach(function(done) {
-      db.schema.dropTable('people')
+      schema.dropTable('people')
         .execute()
         .return()
         .then(done, done);
@@ -79,12 +74,12 @@ describe('SQLite3 schema', function() {
 
     describe('after creation', function() {
       beforeEach(function() {
-        db._adapter._execute.restore();
-        sinon.spy(db._adapter, '_execute');
+        adapter._execute.restore();
+        sinon.spy(adapter, '_execute');
       });
 
       it('can add columns', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.string('last_name');
         });
 
@@ -100,7 +95,7 @@ describe('SQLite3 schema', function() {
       });
 
       it('can add an index', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.index(['first_name', 'best_friend_id']);
         });
 
@@ -120,7 +115,7 @@ describe('SQLite3 schema', function() {
       });
 
       it('can drop an index', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.dropIndex('best_friend_id');
         });
 
@@ -137,7 +132,7 @@ describe('SQLite3 schema', function() {
       });
 
       it('can rename an index', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.renameIndex('people_best_friend_id_idx', 'bff_idx');
         });
 
@@ -160,7 +155,7 @@ describe('SQLite3 schema', function() {
       });
 
       it('can rename columns', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.rename('first_name', 'first', 'string');
         });
 
@@ -196,7 +191,7 @@ describe('SQLite3 schema', function() {
       });
 
       it('drops a column once when procedure is repeated', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.drop('first_name');
         });
 
@@ -247,7 +242,7 @@ describe('SQLite3 schema', function() {
         });
 
         it('rolls back alter table', function(done) {
-          db.schema.alterTable('people', function(table) {
+          schema.alterTable('people', function(table) {
             table.drop('first_name');
           })
           .execute()
@@ -278,7 +273,7 @@ describe('SQLite3 schema', function() {
       });
 
       it('can add, drop, and index simultaneously', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.drop('first_name');
           table.string('name');
           table.index('name');
@@ -319,4 +314,4 @@ describe('SQLite3 schema', function() {
       });
     });
   });
-});
+}));

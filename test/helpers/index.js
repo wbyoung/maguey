@@ -1,0 +1,47 @@
+'use strict';
+
+var chai = require('chai');
+var util = require('util');
+
+var BaseQuery = require('../../lib/query/base');
+var EntryQuery = require('../../lib/query/entry');
+var FakeAdapter = require('../fakes/adapter');
+var adapters = require('../../lib/adapters');
+
+exports.withEntry = function(fn) {
+  var adapter = FakeAdapter.create({});
+  var query = EntryQuery.create(adapter);
+  return function() {
+    fn.call(this, query, adapter);
+  };
+};
+
+exports.connect = function(name, options, fn) {
+  var adapter = adapters[name].create(options);
+  var query = EntryQuery.create(adapter);
+  return function() {
+    before(function(done) {
+      query.raw('select 1').execute().return().then(done, done);
+    });
+    after(function(done) { adapter.disconnectAll().then(done, done); });
+    fn.call(this, query, adapter);
+  };
+};
+
+chai.use(function (_chai, _) {
+  var Assertion = _chai.Assertion;
+  Assertion.addMethod('query', function(sql, args) {
+    var obj = this._obj;
+    new Assertion(this._obj).to.be.instanceof(BaseQuery.__class__);
+    var pass =
+      _.eql(obj.sql, sql) &&
+      _.eql(obj.args, args || []);
+    var fmt = function(s, a) {
+      return util.format('%s ~[%s]', s, a.join(', '));
+    };
+    this.assert(pass,
+      'expected #{this} to have SQL #{exp} but got #{act}',
+      'expected #{this} to not have SQL of #{act}',
+      fmt(sql, args || []), fmt(obj.sql, obj.args));
+  });
+});

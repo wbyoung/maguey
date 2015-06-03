@@ -10,30 +10,25 @@ if (!/^(1|true)$/i.test(process.env.TEST_POSTGRES || '1')) { return; }
 var chai = require('chai');
 var expect = chai.expect;
 var sinon = require('sinon'); chai.use(require('sinon-chai'));
-var Database = require('../../lib/database');
-var EntryQuery = require('../../lib/query/entry');
+var helpers = require('../helpers');
 
-var db, executedSQL, connection = {
-  adapter: 'pg',
-  connection: {
-    user: process.env.PG_USER || 'root',
-    password: process.env.PG_PASSWORD || '',
-    database: process.env.PG_DATABASE || 'azul_test'
-  }
+var EntryQuery = require('../../lib/query/entry');
+var connect = helpers.connect;
+var schema;
+
+var executedSQL, config = {
+  user: process.env.PG_USER || 'root',
+  password: process.env.PG_PASSWORD || '',
+  database: process.env.PG_DATABASE || 'azul_test'
 };
 
-describe('PostgreSQL schema', function() {
-  before(function(done) {
-    db = Database.create(connection);
-    db.query.raw('select 1').execute().return().then(done, done);
-  });
-  after(function(done) { db.disconnect().then(done, done); });
-
+describe('PostgreSQL schema', connect('pg', config, function(query, adapter) {
+  beforeEach(function() { schema = query.schema(); });
   beforeEach(function() {
-    sinon.spy(db._adapter, '_execute');
+    sinon.spy(adapter, '_execute');
     executedSQL = function() {
       var result = [];
-      db._adapter._execute.getCalls().forEach(function(call) {
+      adapter._execute.getCalls().forEach(function(call) {
         result.push(call.args.slice(0,3));
       });
       return result;
@@ -41,12 +36,12 @@ describe('PostgreSQL schema', function() {
   });
 
   afterEach(function() {
-    db._adapter._execute.restore();
+    adapter._execute.restore();
   });
 
   describe('creating a table', function() {
     beforeEach(function(done) {
-      this.create = db.schema.createTable('people', function(table) {
+      this.create = schema.createTable('people', function(table) {
         table.serial('id').pk().notNull();
         table.string('first_name');
         table.integer('best_friend_id').references('id').default(1);
@@ -56,7 +51,7 @@ describe('PostgreSQL schema', function() {
     });
 
     afterEach(function(done) {
-      db.schema.dropTable('people')
+      schema.dropTable('people')
         .execute()
         .return()
         .then(done, done);
@@ -85,12 +80,12 @@ describe('PostgreSQL schema', function() {
 
     describe('after creation', function() {
       beforeEach(function() {
-        db._adapter._execute.restore();
-        sinon.spy(db._adapter, '_execute');
+        adapter._execute.restore();
+        sinon.spy(adapter, '_execute');
       });
 
       it('can rename columns', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.rename('first_name', 'first', 'string');
         });
 
@@ -107,7 +102,7 @@ describe('PostgreSQL schema', function() {
       });
 
       it('can rename two columns', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.rename('id', 'identifier', 'integer');
           table.rename('first_name', 'first', 'string');
         });
@@ -129,7 +124,7 @@ describe('PostgreSQL schema', function() {
       });
 
       it('can add an index', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.index('first_name');
         });
 
@@ -148,7 +143,7 @@ describe('PostgreSQL schema', function() {
       });
 
       it('can drop an index', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.dropIndex('best_friend_id');
         });
 
@@ -165,7 +160,7 @@ describe('PostgreSQL schema', function() {
       });
 
       it('can rename an index', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.renameIndex('people_best_friend_id_idx', 'bff_idx');
         });
 
@@ -184,7 +179,7 @@ describe('PostgreSQL schema', function() {
       });
 
       it('rename and index simultaneously', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.rename('first_name', 'first', 'string');
           table.index(['first']);
         });
@@ -206,7 +201,7 @@ describe('PostgreSQL schema', function() {
         .then(done, done);      });
 
       it('can add, rename, & index simultaneously', function(done) {
-        var alter = db.schema.alterTable('people', function(table) {
+        var alter = schema.alterTable('people', function(table) {
           table.string('last');
           table.rename('first_name', 'first', 'string');
           table.index(['first', 'last']);
@@ -256,7 +251,7 @@ describe('PostgreSQL schema', function() {
         });
 
         it('rolls back alter column', function(done) {
-          db.schema.alterTable('people', function(table) {
+          schema.alterTable('people', function(table) {
             table.string('last');
             table.rename('first_name', 'first', 'string');
           })
@@ -277,4 +272,4 @@ describe('PostgreSQL schema', function() {
       });
     });
   });
-});
+}));
