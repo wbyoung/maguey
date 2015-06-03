@@ -1,14 +1,14 @@
 'use strict';
 
+require('../helpers');
+
 var chai = require('chai');
 var expect = chai.expect;
-var helpers = require('../helpers');
 
 var CreateTable = require('../../lib/schema/table/create');
-var test = helpers.withEntry;
 var schema;
 
-describe('CreateTable', test(function(query) {
+describe('CreateTable', __query(function(query) {
   beforeEach(function() { schema = query.schema(); });
 
   it('cannot be created directly', function() {

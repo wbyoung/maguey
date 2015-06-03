@@ -1,21 +1,21 @@
 'use strict';
 
+require('../helpers');
+
 if (!/^(1|true)$/i.test(process.env.TEST_SQLITE || '1')) { return; }
 
 var chai = require('chai');
 var expect = chai.expect;
 var sinon = require('sinon'); chai.use(require('sinon-chai'));
-var helpers = require('../helpers');
 
 var EntryQuery = require('../../lib/query/entry');
-var connect = helpers.connect;
 var schema;
 
 var executedSQL, config = {
   filename: ''
 };
 
-describe('SQLite3 schema', connect('sqlite3', config, function(query, adapter) {
+describe('SQLite3 schema', __connect('sqlite3', config, function(query, adapter) {
   beforeEach(function() { schema = query.schema(); });
   beforeEach(function() {
     sinon.spy(adapter, '_execute');

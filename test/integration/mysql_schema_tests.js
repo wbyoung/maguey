@@ -1,12 +1,12 @@
 'use strict';
 
+require('../helpers');
+
 if (!/^(1|true)$/i.test(process.env.TEST_SQLITE || '1')) { return; }
 
 var chai = require('chai');
 var expect = chai.expect;
 var sinon = require('sinon'); chai.use(require('sinon-chai'));
-var helpers = require('../helpers');
-var connect = helpers.connect;
 var schema;
 
 var executedSQL, config = {
@@ -15,7 +15,7 @@ var executedSQL, config = {
   database: process.env.MYSQL_DATABASE || 'azul_test'
 };
 
-describe('MySQL schema', connect('mysql', config, function(query, adapter) {
+describe('MySQL schema', __connect('mysql', config, function(query, adapter) {
   beforeEach(function() { schema = query.schema(); });
   beforeEach(function() {
     sinon.spy(adapter, '_execute');

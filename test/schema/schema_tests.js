@@ -1,13 +1,13 @@
 'use strict';
 
+require('../helpers');
+
 var expect = require('chai').expect;
-var helpers = require('../helpers');
 
 var Schema = require('../../lib/schema');
-var test = helpers.withEntry;
 var schema;
 
-describe('Schema', test(function(query) {
+describe('Schema', __query(function(query) {
   beforeEach(function() { schema = query.schema(); });
 
   it('cannot be created directly', function() {

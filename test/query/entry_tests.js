@@ -1,13 +1,13 @@
 'use strict';
 
+require('../helpers');
+
 var chai = require('chai');
 var expect = chai.expect;
-var helpers = require('../helpers');
 
 var EntryQuery = require('../../lib/query/entry');
-var test = helpers.withEntry;
 
-describe('EntryQuery', test(function(query, adapter) {
+describe('EntryQuery', __query(function(query, adapter) {
   it('can be created directly', function() {
     expect(function() { EntryQuery.create(adapter); }).to.not.throw();
   });

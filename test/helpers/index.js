@@ -1,14 +1,16 @@
 'use strict';
 
+require('../helpers');
+
 var chai = require('chai');
 var util = require('util');
 
-var BaseQuery = require('../../lib/query/base');
-var EntryQuery = require('../../lib/query/entry');
+var BaseQuery = require('../..').BaseQuery;
+var EntryQuery = require('../..').EntryQuery;
 var FakeAdapter = require('../fakes/adapter');
 var adapters = require('../../lib/adapters');
 
-exports.withEntry = function(fn) {
+global.__query = function(fn) {
   var adapter = FakeAdapter.create({});
   var query = EntryQuery.create(adapter);
   return function() {
@@ -16,7 +18,7 @@ exports.withEntry = function(fn) {
   };
 };
 
-exports.connect = function(name, options, fn) {
+global.__connect = function(name, options, fn) {
   var adapter = adapters[name].create(options);
   var query = EntryQuery.create(adapter);
   return function() {

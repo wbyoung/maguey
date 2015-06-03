@@ -1,16 +1,16 @@
 'use strict';
 
+require('../helpers');
+
 if (!/^(1|true)$/i.test(process.env.TEST_SQLITE || '1')) { return; }
 
 var _ = require('lodash');
 var expect = require('chai').expect;
-var helpers = require('../helpers');
 var Promise = require('bluebird');
 var returning = require('../../lib/adapters/mixins/returning');
 var PseudoReturn = returning.PseudoReturn;
 
 var shared = require('./shared_behaviors');
-var connect = helpers.connect;
 var config = {
   filename: ''
 };
@@ -31,7 +31,7 @@ var castDatabaseValue = function(type, value, options) {
   return value;
 };
 
-describe('SQLite3', connect('sqlite3', config, function(query, adapter) {
+describe('SQLite3', __connect('sqlite3', config, function(query, adapter) {
   before(function() { this.query = query; });
   before(function() { this.resetSequence = resetSequence; });
   before(function() { this.castDatabaseValue = castDatabaseValue; });

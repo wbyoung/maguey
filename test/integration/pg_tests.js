@@ -1,5 +1,7 @@
 'use strict';
 
+require('../helpers');
+
 // $ createuser -s root
 // $ psql -U root -d postgres
 // > CREATE DATABASE azul_test;
@@ -9,11 +11,9 @@ if (!/^(1|true)$/i.test(process.env.TEST_POSTGRES || '1')) { return; }
 
 var _ = require('lodash');
 var expect = require('chai').expect;
-var helpers = require('../helpers');
 var Promise = require('bluebird');
 
 var shared = require('./shared_behaviors');
-var connect = helpers.connect;
 var config = {
   user: process.env.PG_USER || 'root',
   password: process.env.PG_PASSWORD || '',
@@ -32,7 +32,7 @@ var castDatabaseValue = function(type, value) {
   return value;
 };
 
-describe('PostgreSQL', connect('pg', config, function(query, adapter) {
+describe('PostgreSQL', __connect('pg', config, function(query, adapter) {
   before(function() { this.query = query; });
   before(function() { this.resetSequence = resetSequence; });
   before(function() { this.castDatabaseValue = castDatabaseValue; });

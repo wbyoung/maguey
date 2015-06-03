@@ -1,15 +1,15 @@
 'use strict';
 
+require('../helpers');
+
 var _ = require('lodash');
 var expect = require('chai').expect;
-var helpers = require('../helpers');
 
 var ReversibleSchema = require('../../lib/schema/reversible');
 var Schema = require('../../lib/schema');
-var test = helpers.withEntry;
 var schema;
 
-describe('ReversibleSchema', test(function(query) {
+describe('ReversibleSchema', __query(function(query) {
   beforeEach(function() { schema = query.schema().reversible(); });
 
   it('cannot be created directly', function() {

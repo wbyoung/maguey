@@ -1,5 +1,7 @@
 'use strict';
 
+require('../helpers');
+
 // $ mysql -u root
 // > CREATE DATABASE azul_test;
 // > exit
@@ -8,13 +10,11 @@ if (!/^(1|true)$/i.test(process.env.TEST_MYSQL || '1')) { return; }
 
 var _ = require('lodash');
 var expect = require('chai').expect;
-var helpers = require('../helpers');
 var Promise = require('bluebird');
 var returning = require('../../lib/adapters/mixins/returning');
 var PseudoReturn = returning.PseudoReturn;
 
 var shared = require('./shared_behaviors');
-var connect = helpers.connect;
 var config = {
   user: process.env.MYSQL_USER || 'root',
   password: process.env.MYSQL_PASSWORD || '',
@@ -32,7 +32,7 @@ var castDatabaseValue = function(type, value) {
   return value;
 };
 
-describe('MySQL', connect('mysql', config, function(query, adapter) {
+describe('MySQL', __connect('mysql', config, function(query, adapter) {
   before(function() { this.query = query; });
   before(function() { this.resetSequence = resetSequence; });
   before(function() { this.castDatabaseValue = castDatabaseValue; });

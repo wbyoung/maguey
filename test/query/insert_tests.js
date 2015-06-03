@@ -1,14 +1,14 @@
 'use strict';
 
+require('../helpers');
+
 var chai = require('chai');
 var expect = chai.expect;
-var helpers = require('../helpers');
 
 var InsertQuery = require('../../lib/query/insert');
-var test = helpers.withEntry;
 var insert;
 
-describe('InsertQuery', test(function(query) {
+describe('InsertQuery', __query(function(query) {
   beforeEach(function() { insert = query.insert.bind(query); });
 
   it('cannot be created directly', function() {

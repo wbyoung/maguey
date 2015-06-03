@@ -1,5 +1,7 @@
 'use strict';
 
+require('../helpers');
+
 // $ createuser -s root
 // $ psql -U root -d postgres
 // > CREATE DATABASE azul_test;
@@ -10,10 +12,8 @@ if (!/^(1|true)$/i.test(process.env.TEST_POSTGRES || '1')) { return; }
 var chai = require('chai');
 var expect = chai.expect;
 var sinon = require('sinon'); chai.use(require('sinon-chai'));
-var helpers = require('../helpers');
 
 var EntryQuery = require('../../lib/query/entry');
-var connect = helpers.connect;
 var schema;
 
 var executedSQL, config = {
@@ -22,7 +22,7 @@ var executedSQL, config = {
   database: process.env.PG_DATABASE || 'azul_test'
 };
 
-describe('PostgreSQL schema', connect('pg', config, function(query, adapter) {
+describe('PostgreSQL schema', __connect('pg', config, function(query, adapter) {
   beforeEach(function() { schema = query.schema(); });
   beforeEach(function() {
     sinon.spy(adapter, '_execute');

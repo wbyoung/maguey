@@ -25,19 +25,8 @@
     "afterEach": true,
     "expect": true,
     "sinon": true,
-
-    "__app": true,
-    "__fixture": true,
-    "__respondWithJSONFixture": true,
-    "find": true,
-    "visit": true,
-    "click": true,
-    "fillIn": true,
-    "andThen": true,
-    "currentRouteName": true,
-    "currentPath": true,
-    "currentURL": true,
-    "applicationContainer": true
+    "__connect": true,
+    "__query": true
   },
   "expr": true
 }

@@ -1,18 +1,18 @@
 'use strict';
 
+require('../helpers');
+
 var _ = require('lodash');
 var chai = require('chai');
 var expect = chai.expect;
 var sinon = require('sinon'); chai.use(require('sinon-chai'));
-var helpers = require('../helpers');
 
 var RawQuery = require('../../lib/query/raw');
 var Statement = require('../../lib/types/statement');
 var Promise = require('bluebird');
-var test = helpers.withEntry;
 var raw;
 
-describe('RawQuery', test(function(query, adapter) {
+describe('RawQuery', __query(function(query, adapter) {
   beforeEach(function() { raw = query.raw.bind(query); });
 
   it('cannot be created directly', function() {

@@ -1,16 +1,16 @@
 'use strict';
 
+require('../helpers');
+
 var chai = require('chai');
 var expect = chai.expect;
 var sinon = require('sinon'); chai.use(require('sinon-chai'));
-var helpers = require('../helpers');
 
 var SelectQuery = require('../../lib/query/select');
 var Condition = require('../../lib/condition'), f = Condition.f;
-var test = helpers.withEntry;
 var select;
 
-describe('SelectQuery', test(function(query, adapter) {
+describe('SelectQuery', __query(function(query, adapter) {
   beforeEach(function() { select = query.select.bind(query); });
 
   it('cannot be created directly', function() {

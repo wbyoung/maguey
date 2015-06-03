@@ -1,14 +1,14 @@
 'use strict';
 
+require('../helpers');
+
 var chai = require('chai');
 var expect = chai.expect;
-var helpers = require('../helpers');
 
 var DeleteQuery = require('../../lib/query/delete');
-var test = helpers.withEntry;
 var del;
 
-describe('DeleteQuery', test(function(query) {
+describe('DeleteQuery', __query(function(query) {
   beforeEach(function() { del = query.delete.bind(query); });
 
   it('cannot be created directly', function() {

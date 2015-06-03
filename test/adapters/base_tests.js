@@ -1,5 +1,7 @@
 'use strict';
 
+require('../helpers');
+
 var expect = require('chai').expect;
 var Adapter = require('../../lib/adapters/base');
 

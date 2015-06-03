@@ -1,16 +1,16 @@
 'use strict';
 
+require('../helpers');
+
 var chai = require('chai');
 var expect = chai.expect;
-var helpers = require('../helpers');
 
 var UpdateQuery = require('../../lib/query/update');
 var l = require('../../lib/types/literal').l;
 var f = require('../../lib/types/field').f;
-var test = helpers.withEntry;
 var update;
 
-describe('UpdateQuery', test(function(query) {
+describe('UpdateQuery', __query(function(query) {
   beforeEach(function() { update = query.update.bind(query); });
 
   it('cannot be created directly', function() {
