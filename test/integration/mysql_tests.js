@@ -43,10 +43,10 @@ describe('MySQL', __connect(config, function(query, adapter) {
   it('executes raw sql', function(done) {
     var returnId = PseudoReturn.create('id');
     var queries = [
-      ['CREATE TABLE azul_raw_sql_test (id serial, name varchar(255))'],
-      ['INSERT INTO azul_raw_sql_test (name) VALUES (\'Azul\')', [returnId]],
-      ['SELECT * FROM azul_raw_sql_test'],
-      ['DROP TABLE azul_raw_sql_test']
+      ['CREATE TABLE maguey_raw_sql_test (id serial, name varchar(255))'],
+      ['INSERT INTO maguey_raw_sql_test (name) VALUES (\'Azul\')', [returnId]],
+      ['SELECT * FROM maguey_raw_sql_test'],
+      ['DROP TABLE maguey_raw_sql_test']
     ];
     Promise.reduce(queries, function(array, info) {
       var query = info[0], args = info[1] || [];

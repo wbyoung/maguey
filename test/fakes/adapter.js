@@ -88,21 +88,6 @@ var FakeAdapter = Adapter.extend(/** @lends FakeAdapter# */ {
       regex: regex,
       result: result
     });
-  },
-
-  /**
-   * Intercept specifically for selecting migrations.
-   *
-   * @param {Array} names Names of migrations that will be used to build the
-   * full result.
-   */
-  interceptSelectMigrations: function(names) {
-    this.intercept(/select.*from "azul_migrations"/i, {
-      fields: ['id', 'name', 'batch'],
-      rows: names.map(function(name, index) {
-        return { id: index + 1, name: name, batch: 1 };
-      })
-    });
   }
 
 });

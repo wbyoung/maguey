@@ -17,7 +17,7 @@ shared.shouldSupportStandardTypes = function(it) {
 
   // shared behavior for type tests
   var viaOptions = function(type, data, expected, options, equal, fn) {
-    var table = util.format('azul_type_%s', type);
+    var table = util.format('maguey_type_%s', type);
     var cast = function(result) {
       return this.castDatabaseValue(type, result, options);
     };
@@ -89,8 +89,8 @@ shared.shouldSupportStandardTypes = function(it) {
       function(col) { col.primaryKey(); }));
 
     it('supports `default`', function(done) {
-      var table = 'azul_default';
-      var value = 'azul\'s default\\\n\t\b\r\x1a"';
+      var table = 'maguey_default';
+      var value = 'maguey\'s default\\\n\t\b\r\x1a"';
       Promise.bind(this)
       .then(function() {
         return schema.createTable(table).pk(null).with(function(table) {
@@ -111,7 +111,7 @@ shared.shouldSupportStandardTypes = function(it) {
     });
 
     it('supports `notNull`', function(done) {
-      var table = 'azul_not_null';
+      var table = 'maguey_not_null';
       Promise.bind(this)
       .then(function() {
         return schema.createTable(table).pk(null).with(function(table) {
@@ -128,7 +128,7 @@ shared.shouldSupportStandardTypes = function(it) {
     });
 
     it('supports `unique`', function(done) {
-      var table = 'azul_unique';
+      var table = 'maguey_unique';
       Promise.bind(this)
       .then(function() {
         return schema.createTable(table).pk(null).with(function(table) {
