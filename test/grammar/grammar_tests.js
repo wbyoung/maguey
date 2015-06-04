@@ -2,8 +2,6 @@
 
 require('../helpers');
 
-var expect = require('chai').expect;
-
 var Grammar = require('../..').Adapter.Grammar;
 var Statement = require('../../lib/types/statement');
 var Fragment = require('../../lib/types/fragment');

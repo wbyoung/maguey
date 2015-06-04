@@ -2,9 +2,6 @@
 
 require('../helpers');
 
-var chai = require('chai');
-var expect = chai.expect;
-
 var DropTableQuery = require('../../lib/schema/table/drop');
 
 describe('DropTableQuery', function() {

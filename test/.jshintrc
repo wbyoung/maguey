@@ -24,7 +24,9 @@
     "after": true,
     "afterEach": true,
     "expect": true,
+    "should": true,
     "sinon": true,
+    "__adapter": true,
     "__connect": true,
     "__query": true
   },

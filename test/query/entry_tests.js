@@ -2,12 +2,11 @@
 
 require('../helpers');
 
-var chai = require('chai');
-var expect = chai.expect;
-
 var EntryQuery = require('../../lib/query/entry');
 
-describe('EntryQuery', __query(function(query, adapter) {
+describe('EntryQuery', __query(function() {
+  /* global query, adapter */
+
   it('can be created directly', function() {
     expect(function() { EntryQuery.create(adapter); }).to.not.throw();
   });

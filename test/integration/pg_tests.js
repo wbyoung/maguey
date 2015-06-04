@@ -10,7 +10,6 @@ require('../helpers');
 if (!/^(1|true)$/i.test(process.env.TEST_POSTGRES || '1')) { return; }
 
 var _ = require('lodash');
-var expect = require('chai').expect;
 var Promise = require('bluebird');
 
 var shared = require('./shared_behaviors');
@@ -35,19 +34,21 @@ var castDatabaseValue = function(type, value) {
   return value;
 };
 
-describe('PostgreSQL', __connect(config, function(query, adapter) {
+describe('PostgreSQL', __connect(config, function() {
+  /* global query, adapter */
+
   before(function() { this.query = query; });
   before(function() { this.resetSequence = resetSequence; });
   before(function() { this.castDatabaseValue = castDatabaseValue; });
 
-  it('executes raw sql', function(done) {
+  it('executes raw sql', function() {
     var queries = [
       ['CREATE TABLE maguey_raw_sql_test (id serial, name varchar(255))'],
       ['INSERT INTO maguey_raw_sql_test (name) VALUES (\'Azul\') RETURNING id'],
       ['SELECT * FROM maguey_raw_sql_test'],
       ['DROP TABLE maguey_raw_sql_test']
     ];
-    Promise.reduce(queries, function(array, info) {
+    return Promise.reduce(queries, function(array, info) {
       var query = info[0], args = info[1] || [];
       return adapter.execute(query, args).then(function(result) {
         return array.concat([result]);
@@ -62,56 +63,47 @@ describe('PostgreSQL', __connect(config, function(query, adapter) {
         rows: [{ id: 1, name: 'Azul' }],
         fields: ['id', 'name'] });
       expect(result4).to.eql({ rows: [], fields: [] });
-    })
-    .done(done, done);
+    });
   });
 
-  it('receives rows from raw sql', function(done) {
+  it('receives rows from raw sql', function() {
     var query = 'SELECT $1::int AS number';
     var args = ['1'];
-    adapter.execute(query, args)
+    return adapter.execute(query, args)
     .then(function(result) {
       expect(result.rows).to.eql([{ number: 1 }]);
-    })
-    .done(done, done);
+    });
   });
 
-  it('reports errors', function(done) {
+  it('reports errors', function() {
     var query = 'SELECT & FROM ^';
     var args = [];
-    adapter.execute(query, args)
-    .throw(new Error('Expected query to fail.'))
-    .catch(function(e) {
-      expect(e.message).to.match(/syntax error/i);
-    })
-    .done(done, done);
+    return adapter.execute(query, args)
+    .should.eventually.be.rejectedWith(/syntax error/i);
   });
 
   describe('with simple table', function() {
-    before(function(done) {
-      adapter
-        .execute('CREATE TABLE maguey_test (id serial, name varchar(255))', [])
-        .then(_.ary(done, 0), done);
+    before(function() {
+      return adapter
+        .execute('CREATE TABLE maguey_test (id serial, name varchar(255))', []);
     });
 
-    after(function(done) {
-      adapter
-        .execute('DROP TABLE maguey_test', [])
-        .then(_.ary(done, 0), done);
+    after(function() {
+      return adapter
+        .execute('DROP TABLE maguey_test', []);
     });
 
-    it('allows use of returning on non primary key', function(done) {
-      query.insert('maguey_test', { name: 'Azul' })
+    it('allows use of returning on non primary key', function() {
+      return query.insert('maguey_test', { name: 'Azul' })
       .returning('name')
       .then(_.partial(_.omit, _, 'client'))
       .then(function(data) {
         expect(data).to.eql({ rows: [{ name: 'Azul' }], fields: ['name'] });
-      })
-      .then(done, done);
+      });
     });
 
-    it('allows use of returning for full row', function(done) {
-      resetSequence.call(this, 'maguey_test').then(function() {
+    it('allows use of returning for full row', function() {
+      return resetSequence.call(this, 'maguey_test').then(function() {
         return query.insert('maguey_test', { name: 'Azul' }).returning('*');
       })
       .then(_.partial(_.omit, _, 'client'))
@@ -120,8 +112,7 @@ describe('PostgreSQL', __connect(config, function(query, adapter) {
           rows: [{ id: 1, name: 'Azul' }],
           fields: ['id', 'name']
         });
-      })
-      .then(done, done);
+      });
     });
   });
 

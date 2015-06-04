@@ -2,9 +2,6 @@
 
 require('../helpers');
 
-var chai = require('chai');
-var expect = chai.expect;
-var sinon = require('sinon');
 var Promise = require('bluebird');
 var Actionable = require('../../lib/util/actionable');
 

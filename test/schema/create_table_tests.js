@@ -2,13 +2,12 @@
 
 require('../helpers');
 
-var chai = require('chai');
-var expect = chai.expect;
-
 var CreateTable = require('../../lib/schema/table/create');
 var schema;
 
-describe('CreateTable', __query(function(query) {
+describe('CreateTable', __query(function() {
+  /* global query */
+
   beforeEach(function() { schema = query.schema(); });
 
   it('cannot be created directly', function() {
@@ -24,21 +23,18 @@ describe('CreateTable', __query(function(query) {
   });
 
   it('generates primary key columns via `pk`', function() {
-    var query = schema.createTable('users', function(table) {
+    schema.createTable('users', function(table) {
       table.integer('identifier').pk();
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("identifier" integer PRIMARY KEY)', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" ' +
+      '("identifier" integer PRIMARY KEY)');
   });
 
   it('generates primary key columns via `primarykey`', function() {
-    var query = schema.createTable('users', function(table) {
+    schema.createTable('users', function(table) {
       table.integer('id').primaryKey();
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("id" integer PRIMARY KEY)', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" ("id" integer PRIMARY KEY)');
   });
 
   it('does not allow more than one primary key', function() {
@@ -59,105 +55,94 @@ describe('CreateTable', __query(function(query) {
   });
 
   it('generates not null columns', function() {
-    var query = schema.createTable('users', function(table) {
+    schema.createTable('users', function(table) {
       table.integer('id').notNull(); // pk will be automatically added
       table.string('username').notNull();
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("id" integer PRIMARY KEY NOT NULL, ' +
-      '"username" varchar(255) NOT NULL)', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"id" integer PRIMARY KEY NOT NULL, ' +
+      '"username" varchar(255) NOT NULL)');
   });
 
   it('automatically adds a primary key', function() {
-    var query = schema.createTable('users', function(table) {
+    schema.createTable('users', function(table) {
       table.string('username');
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("id" serial PRIMARY KEY, ' +
-        '"username" varchar(255))', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"id" serial PRIMARY KEY, ' +
+      '"username" varchar(255))');
   });
 
   it('can add a named primary key', function() {
-    var query = schema.createTable('users').pk('uid').with(function(table) {
+    schema.createTable('users').pk('uid').with(function(table) {
       table.string('username');
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("uid" serial PRIMARY KEY, ' +
-        '"username" varchar(255))', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"uid" serial PRIMARY KEY, ' +
+      '"username" varchar(255))');
   });
 
   it('can skip adding a primary key', function() {
-    var query = schema.createTable('users')
+    schema.createTable('users')
     .primaryKey(null).with(function(table) {
       table.string('username');
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("username" varchar(255))', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" ("username" varchar(255))');
   });
 
   it('generates indexed columns', function() {
-    var query = schema.createTable('users')
+    schema.createTable('users')
     .primaryKey(null).with(function(table) {
       table.string('username');
       table.index('username');
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("username" varchar(255), ' +
-      'INDEX "users_username_idx" ("username"))', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"username" varchar(255), ' +
+      'INDEX "users_username_idx" ("username"))');
   });
 
   it('generates unique columns', function() {
-    var query = schema.createTable('users', function(table) {
+    schema.createTable('users', function(table) {
       table.integer('id').unique();
       table.integer('age').unique();
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("id" integer PRIMARY KEY UNIQUE, ' +
-      '"age" integer UNIQUE)', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"id" integer PRIMARY KEY UNIQUE, ' +
+      '"age" integer UNIQUE)');
   });
 
   it('generates columns with defaults', function() {
-    var query = schema.createTable('users', function(table) {
+    schema.createTable('users', function(table) {
       table.integer('id').default(0);
       table.string('name').default('anonymous');
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("id" integer PRIMARY KEY DEFAULT 0, ' +
-      '"name" varchar(255) DEFAULT \'anonymous\')', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"id" integer PRIMARY KEY DEFAULT 0, ' +
+      '"name" varchar(255) DEFAULT \'anonymous\')');
   });
 
   it('generates columns with default of string', function() {
-    var query = schema.createTable('users').pk(null).with(function(table) {
+    schema.createTable('users').pk(null).with(function(table) {
       table.integer('name').default('Anonymous');
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("name" integer DEFAULT \'Anonymous\')', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"name" integer DEFAULT \'Anonymous\')');
   });
 
   it('generates columns using foreign keys', function() {
-    var query = schema.createTable('users').pk(null).with(function(table) {
+    schema.createTable('users').pk(null).with(function(table) {
       table.integer('profile_id').references('profiles.id');
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("profile_id" integer REFERENCES "profiles" ("id"))', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"profile_id" integer REFERENCES "profiles" ("id"))');
   });
 
   it('generates columns using foreign key on self', function() {
-    var query = schema.createTable('users').pk(null).with(function(table) {
+    schema.createTable('users').pk(null).with(function(table) {
       table.integer('boss_id').references('id');
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("boss_id" integer REFERENCES "users" ("id"))', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"boss_id" integer REFERENCES "users" ("id"))');
   });
 
   it('gives error when foreign key is invalid', function() {
@@ -170,36 +155,31 @@ describe('CreateTable', __query(function(query) {
   });
 
   it('generates columns using foreign keys that specify delete actions', function() {
-    var query = schema.createTable('users').pk(null).with(function(table) {
+    schema.createTable('users').pk(null).with(function(table) {
       table.integer('profile_id').references('profiles.id').onDelete('cascade');
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("profile_id" integer ' +
-      'REFERENCES "profiles" ("id") ON DELETE CASCADE)', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"profile_id" integer REFERENCES "profiles" ("id") ON DELETE CASCADE)');
   });
 
   it('generates columns using foreign keys that specify update actions', function() {
-    var query = schema.createTable('users').pk(null).with(function(table) {
+    schema.createTable('users').pk(null).with(function(table) {
       table.integer('profile_id').references('profiles.id').onUpdate('nullify');
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("profile_id" integer ' +
-      'REFERENCES "profiles" ("id") ON UPDATE SET NULL)', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"profile_id" integer REFERENCES "profiles" ("id") ON UPDATE SET NULL)');
   });
 
   it('generates columns using foreign keys that specify both actions', function() {
-    var query = schema.createTable('users').pk(null).with(function(table) {
+    schema.createTable('users').pk(null).with(function(table) {
       table.integer('profile_id')
         .references('profiles.id')
         .onDelete('restrict')
         .onUpdate('cascade');
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("profile_id" integer ' +
-      'REFERENCES "profiles" ("id") ON DELETE RESTRICT ON UPDATE CASCADE)', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"profile_id" integer ' +
+      'REFERENCES "profiles" ("id") ON DELETE RESTRICT ON UPDATE CASCADE)');
   });
 
   it('give an error for unsupported foreign key delete actions', function() {
@@ -219,12 +199,10 @@ describe('CreateTable', __query(function(query) {
   });
 
   it('can combine options', function() {
-    var query = schema.createTable('users').pk(null).with(function(table) {
+    schema.createTable('users').pk(null).with(function(table) {
       table.integer('profile_id').references('profiles.id').notNull().unique();
-    });
-    expect(query).to.be.query(
-      'CREATE TABLE "users" ("profile_id" integer NOT NULL UNIQUE ' +
-        'REFERENCES "profiles" ("id"))', []
-    );
+    })
+    .should.be.a.query('CREATE TABLE "users" (' +
+      '"profile_id" integer NOT NULL UNIQUE REFERENCES "profiles" ("id"))');
   });
 }));

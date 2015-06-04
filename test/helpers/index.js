@@ -1,55 +1,56 @@
 'use strict';
 
-require('../helpers');
-
+var maguey = require('../..');
+var sinon = require('sinon');
 var chai = require('chai');
-var util = require('util');
+var chaiAsPromised = require('chai-as-promised');
 
-var BaseQuery = require('../..').BaseQuery;
+var createAdapter = require('maguey-chai').adapter;
 var EntryQuery = require('../..').EntryQuery;
-var FakeAdapter = require('../fakes/adapter');
-var lib = require('../..');
+
+chaiAsPromised.transferPromiseness = function (assertion, promise) {
+  assertion.then = promise.then.bind(promise);
+  assertion.also = promise.return.bind(promise);
+};
+
+chai.use(require('sinon-chai'));
+chai.use(require('maguey-chai').reset(maguey));
+chai.use(require('chai-as-promised'));
+
+global.expect = chai.expect;
+global.should = chai.should();
+global.sinon = sinon;
+
+global.__adapter = function(fn) {
+  return function() {
+    beforeEach(function() {
+      global.adapter = createAdapter();
+    });
+    fn.call(this);
+  };
+};
 
 global.__query = function(fn) {
-  var adapter = FakeAdapter.create({});
-  var query = EntryQuery.create(adapter);
-  beforeEach(function() {
-    adapter.init({}); // re-initialize
+  return __adapter(function() {
+    beforeEach(function() {
+      global.query = EntryQuery.create(global.adapter);
+    });
+    fn.call(this);
   });
-  return function() {
-    fn.call(this, query, adapter);
-  };
 };
 
 global.__connect = function(config, fn) {
-  var query = lib(config);
-  var adapter = query._adapter;
   return function() {
-    before(function(done) {
-      query.raw('select 1').execute().return().then(done, done);
+    var query = maguey(config);
+    var adapter = query._adapter;
+    before(function() {
+      global.query = query;
+      global.adapter = adapter;
+      return query.raw('select 1');
     });
-    after(function(done) { adapter.disconnectAll().then(done, done); });
-    fn.call(this, query, adapter);
+    after(function() {
+      return adapter.disconnectAll();
+    });
+    fn.call(this);
   };
 };
-
-chai.should();
-chai.use(require('sinon-chai'));
-chai.use(require('chai-as-promised'));
-chai.use(function (_chai, _) {
-  var Assertion = _chai.Assertion;
-  Assertion.addMethod('query', function(sql, args) {
-    var obj = this._obj;
-    new Assertion(this._obj).to.be.instanceof(BaseQuery.__class__);
-    var pass =
-      _.eql(obj.sql, sql) &&
-      _.eql(obj.args, args || []);
-    var fmt = function(s, a) {
-      return util.format('%s ~[%s]', s, a.join(', '));
-    };
-    this.assert(pass,
-      'expected #{this} to have SQL #{exp} but got #{act}',
-      'expected #{this} to not have SQL of #{act}',
-      fmt(sql, args || []), fmt(obj.sql, obj.args));
-  });
-});

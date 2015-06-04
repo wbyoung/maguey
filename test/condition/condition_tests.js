@@ -2,9 +2,6 @@
 
 require('../helpers');
 
-var chai = require('chai');
-var expect = chai.expect;
-
 var util = require('util');
 var Node = require('../../lib/condition/node');
 var Condition = require('../..').Condition,

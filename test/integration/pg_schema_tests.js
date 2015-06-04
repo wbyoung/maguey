@@ -9,10 +9,6 @@ require('../helpers');
 
 if (!/^(1|true)$/i.test(process.env.TEST_POSTGRES || '1')) { return; }
 
-var chai = require('chai');
-var expect = chai.expect;
-var sinon = require('sinon');
-
 var EntryQuery = require('../../lib/query/entry');
 var schema;
 
@@ -25,7 +21,9 @@ var executedSQL, config = {
   }
 };
 
-describe('PostgreSQL schema', __connect(config, function(query, adapter) {
+describe('PostgreSQL schema', __connect(config, function() {
+  /* global query, adapter */
+
   beforeEach(function() { schema = query.schema(); });
   beforeEach(function() {
     sinon.spy(adapter, '_execute');
@@ -43,21 +41,18 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
   });
 
   describe('creating a table', function() {
-    beforeEach(function(done) {
+    beforeEach(function() {
       this.create = schema.createTable('people', function(table) {
         table.serial('id').pk().notNull();
         table.string('first_name');
         table.integer('best_friend_id').references('id').default(1);
         table.index('best_friend_id');
       });
-      this.create.execute().return().then(done, done);
+      return this.create.execute();
     });
 
-    afterEach(function(done) {
-      schema.dropTable('people')
-        .execute()
-        .return()
-        .then(done, done);
+    afterEach(function() {
+      return schema.dropTable('people').execute();
     });
 
     it('was created with the right sql', function() {
@@ -87,7 +82,7 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
         sinon.spy(adapter, '_execute');
       });
 
-      it('can rename columns', function(done) {
+      it('can rename columns', function() {
         var alter = schema.alterTable('people', function(table) {
           table.rename('first_name', 'first', 'string');
         });
@@ -95,16 +90,15 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
         expect(alter.sql).to
           .eql('ALTER TABLE "people" RENAME "first_name" TO "first"');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'ALTER TABLE "people" RENAME "first_name" TO "first"', []]
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can drop and add columns at the same time', function(done) {
+      it('can drop and add columns at the same time', function() {
         var alter = schema.alterTable('people', function(table) {
           table.drop('first_name');
           table.text('bio');
@@ -114,17 +108,16 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
           'DROP COLUMN "first_name", ' +
           'ADD COLUMN "bio" text');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'ALTER TABLE "people" DROP COLUMN "first_name", ' +
               'ADD COLUMN "bio" text', []],
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can rename two columns', function(done) {
+      it('can rename two columns', function() {
         var alter = schema.alterTable('people', function(table) {
           table.rename('id', 'identifier', 'integer');
           table.rename('first_name', 'first', 'string');
@@ -134,7 +127,7 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
           'ALTER TABLE "people" RENAME "id" TO "identifier", ' +
           'RENAME "first_name" TO "first"');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'BEGIN', []],
@@ -142,11 +135,10 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
             [c, 'ALTER TABLE "people" RENAME "first_name" TO "first"', []],
             [c, 'COMMIT', []],
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can add an index', function(done) {
+      it('can add an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.index('first_name');
         });
@@ -155,17 +147,16 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
           .eql('CREATE INDEX "people_first_name_idx" '+
             'ON "people" ("first_name")');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'CREATE INDEX "people_first_name_idx" ' +
               'ON "people" ("first_name")', []]
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can drop an index', function(done) {
+      it('can drop an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.dropIndex('best_friend_id');
         });
@@ -173,16 +164,15 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
         expect(alter.sql).to
           .eql('DROP INDEX "people_best_friend_id_idx"');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'DROP INDEX "people_best_friend_id_idx"', []]
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can rename an index', function(done) {
+      it('can rename an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.renameIndex('people_best_friend_id_idx', 'bff_idx');
         });
@@ -191,17 +181,16 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
           .eql('ALTER INDEX "people_best_friend_id_idx" ' +
             'RENAME TO "bff_idx"');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'ALTER INDEX "people_best_friend_id_idx" ' +
               'RENAME TO "bff_idx"', []]
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('rename and index simultaneously', function(done) {
+      it('rename and index simultaneously', function() {
         var alter = schema.alterTable('people', function(table) {
           table.rename('first_name', 'first', 'string');
           table.index(['first']);
@@ -212,7 +201,7 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
           'RENAME "first_name" TO "first", ' +
           'ADD INDEX "people_first_idx" ("first")');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'BEGIN', []],
@@ -220,10 +209,10 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
             [c, 'CREATE INDEX "people_first_idx" ON "people" ("first")', []],
             [c, 'COMMIT', []],
           ]);
-        })
-        .then(done, done);      });
+        });
+      });
 
-      it('can add, rename, & index simultaneously', function(done) {
+      it('can add, rename, & index simultaneously', function() {
         var alter = schema.alterTable('people', function(table) {
           table.string('last');
           table.rename('first_name', 'first', 'string');
@@ -239,7 +228,7 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
           'ADD INDEX "people_first_last_idx" ("first", "last"), ' +
           'RENAME INDEX "people_first_last_idx" TO "name_idx"');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'BEGIN', []],
@@ -251,8 +240,7 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
             [c, 'ALTER INDEX "people_first_last_idx" RENAME TO "name_idx"', []],
             [c, 'COMMIT', []],
           ]);
-        })
-        .then(done, done);
+        });
       });
 
       describe('with raw column rename queries causing problems', function() {
@@ -273,8 +261,8 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
           EntryQuery.__class__.prototype.raw.restore();
         });
 
-        it('rolls back alter column', function(done) {
-          schema.alterTable('people', function(table) {
+        it('rolls back alter column', function() {
+          return schema.alterTable('people', function(table) {
             table.string('last');
             table.rename('first_name', 'first', 'string');
           })
@@ -289,8 +277,7 @@ describe('PostgreSQL schema', __connect(config, function(query, adapter) {
               [c, 'ALTER TABLE "people" RENAME "first_name_invalid" TO "first"', []],
               [c, 'ROLLBACK', []],
             ]);
-          })
-          .then(done, done);
+          });
         });
       });
     });

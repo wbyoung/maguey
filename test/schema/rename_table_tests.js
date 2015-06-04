@@ -2,13 +2,12 @@
 
 require('../helpers');
 
-var chai = require('chai');
-var expect = chai.expect;
-
 var RenameTableQuery = require('../../lib/schema/table/rename');
 var schema;
 
-describe('RenameTableQuery', __query(function(query) {
+describe('RenameTableQuery', __query(function() {
+  /* global query */
+
   beforeEach(function() { schema = query.schema(); });
 
   it('cannot be created directly', function() {

@@ -4,10 +4,6 @@ require('../helpers');
 
 if (!/^(1|true)$/i.test(process.env.TEST_SQLITE || '1')) { return; }
 
-var chai = require('chai');
-var expect = chai.expect;
-var sinon = require('sinon');
-
 var EntryQuery = require('../../lib/query/entry');
 var schema;
 
@@ -18,7 +14,9 @@ var executedSQL, config = {
   }
 };
 
-describe('SQLite3 schema', __connect(config, function(query, adapter) {
+describe('SQLite3 schema', __connect(config, function() {
+  /* global query, adapter */
+
   beforeEach(function() { schema = query.schema(); });
   beforeEach(function() {
     sinon.spy(adapter, '_execute');
@@ -36,21 +34,18 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
   });
 
   describe('creating a table', function() {
-    beforeEach(function(done) {
+    beforeEach(function() {
       this.create = schema.createTable('people', function(table) {
         table.serial('id').pk().notNull();
         table.string('first_name');
         table.integer('best_friend_id').references('id').default(1);
         table.index('best_friend_id');
       });
-      this.create.execute().return().then(done, done);
+      return this.create.execute().return();
     });
 
-    afterEach(function(done) {
-      schema.dropTable('people')
-        .execute()
-        .return()
-        .then(done, done);
+    afterEach(function() {
+      return schema.dropTable('people').execute();
     });
 
     it('was created with the right sql', function() {
@@ -81,23 +76,22 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
         sinon.spy(adapter, '_execute');
       });
 
-      it('can add columns', function(done) {
+      it('can add columns', function() {
         var alter = schema.alterTable('people', function(table) {
           table.string('last_name');
         });
 
         expect(alter.sql).to.not.match(/^--/);
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'ALTER TABLE "people" ADD COLUMN "last_name" varchar(255)', []]
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can add an index', function(done) {
+      it('can add an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.index(['first_name', 'best_friend_id']);
         });
@@ -106,18 +100,17 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
           '"people_first_name_best_friend_id_idx" ON "people" ' +
           '("first_name", "best_friend_id")');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'CREATE INDEX ' +
             '"people_first_name_best_friend_id_idx" ON "people" ' +
             '("first_name", "best_friend_id")', []]
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can drop an index', function(done) {
+      it('can drop an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.dropIndex('best_friend_id');
         });
@@ -125,16 +118,15 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
         expect(alter.sql).to
           .eql('DROP INDEX "people_best_friend_id_idx"');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'DROP INDEX "people_best_friend_id_idx"', []]
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can rename an index', function(done) {
+      it('can rename an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.renameIndex('people_best_friend_id_idx', 'bff_idx');
         });
@@ -143,7 +135,7 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
           .eql('-- procedure for ALTER INDEX "people_best_friend_id_idx" ' +
             'RENAME TO "bff_idx"');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'SAVEPOINT AZULJS_1', []],
@@ -153,11 +145,10 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
               'ON "people" ("best_friend_id")', []],
             [c, 'RELEASE AZULJS_1', []],
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can rename columns', function(done) {
+      it('can rename columns', function() {
         var alter = schema.alterTable('people', function(table) {
           table.rename('first_name', 'first', 'string');
         });
@@ -165,8 +156,7 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
         expect(alter.sql).to.eql('-- procedure for ' +
           'ALTER TABLE "people" RENAME "first_name" TO "first"');
 
-        alter
-        .then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'SAVEPOINT AZULJS_1', []],
@@ -189,11 +179,10 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
               'ON "people" ("best_friend_id")', []],
             [c, 'RELEASE AZULJS_1', []],
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('drops a column once when procedure is repeated', function(done) {
+      it('drops a column once when procedure is repeated', function() {
         var alter = schema.alterTable('people', function(table) {
           table.drop('first_name');
         });
@@ -201,7 +190,7 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
         expect(alter.sql).to
           .eql('-- procedure for ALTER TABLE "people" DROP COLUMN "first_name"');
 
-        alter
+        return alter
         .then(function() { return alter; })
         .then(function() {
           var c = executedSQL()[0][0];
@@ -225,8 +214,7 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
               'ON "people" ("best_friend_id")', []],
             [c, 'RELEASE AZULJS_1', []],
           ]);
-        })
-        .then(done, done);
+        });
       });
 
       describe('with raw table rename queries causing problems', function() {
@@ -244,8 +232,8 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
           EntryQuery.__class__.prototype.raw.restore();
         });
 
-        it('rolls back alter table', function(done) {
-          schema.alterTable('people', function(table) {
+        it('rolls back alter table', function() {
+          return schema.alterTable('people', function(table) {
             table.drop('first_name');
           })
           .execute()
@@ -270,12 +258,11 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
                 'SELECT "id", "best_friend_id" FROM "people_old"', []],
               [c, 'ROLLBACK TO AZULJS_1', []],
             ]);
-          })
-          .then(done, done);
+          });
         });
       });
 
-      it('can add, drop, and index simultaneously', function(done) {
+      it('can add, drop, and index simultaneously', function() {
         var alter = schema.alterTable('people', function(table) {
           table.drop('first_name');
           table.string('name');
@@ -288,7 +275,7 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
           'ADD INDEX "people_name_idx" ("name"), ' +
           'RENAME INDEX "people_best_friend_id_idx" TO "bff_idx"');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'SAVEPOINT AZULJS_1', []],
@@ -312,8 +299,7 @@ describe('SQLite3 schema', __connect(config, function(query, adapter) {
             [c, 'CREATE INDEX "people_name_idx" ON "people" ("name")', []],
             [c, 'RELEASE AZULJS_1', []],
           ]);
-        })
-        .then(done, done);
+        });
       });
     });
   });

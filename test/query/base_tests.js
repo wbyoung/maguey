@@ -2,17 +2,13 @@
 
 require('../helpers');
 
-var chai = require('chai');
-var expect = chai.expect;
-
 var BaseQuery = require('../../lib/query/base');
-var FakeAdapter = require('../fakes/adapter');
 var query;
-var adapter;
 
-describe('BaseQuery', function() {
+describe('BaseQuery', __adapter(function() {
+  /* global adapter */
+
   beforeEach(function() {
-    adapter = FakeAdapter.create({});
     query = BaseQuery.create(adapter);
   });
 
@@ -26,12 +22,7 @@ describe('BaseQuery', function() {
     expect(clone).to.not.equal(query);
   });
 
-  it('cannot be executed', function(done) {
-    query.execute()
-    .throw('Expected execution to fail.')
-    .catch(function(e) {
-      expect(e).to.match(/cannot be used/i);
-    })
-    .done(done, done);
+  it('cannot be executed', function() {
+    return query.should.eventually.be.rejectedWith(/cannot be used/i);
   });
-});
+}));

@@ -2,8 +2,6 @@
 
 require('../helpers');
 
-var expect = require('chai').expect;
-
 var Promise = require('bluebird');
 var Adapter = require('../..').Adapter;
 var EntryQuery = require('../..').EntryQuery;
@@ -40,13 +38,12 @@ describe('Adapter with PseudoReturn', function() {
       };
     });
 
-    it('adds the an undefined value to the result', function(done) {
-      query.insert('users', { username: 'wbyoung' }).returning('identifier')
+    it('adds the an undefined value to the result', function() {
+      return query.insert('users', { username: 'wbyoung' }).returning('identifier')
       .then(function(result) {
         expect(result.rows[0]).to.haveOwnProperty('identifier');
         expect(result.rows[0].identifier).to.not.exist;
-      })
-      .then(done, done);
+      });
     });
   });
 

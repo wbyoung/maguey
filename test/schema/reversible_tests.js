@@ -3,13 +3,13 @@
 require('../helpers');
 
 var _ = require('lodash');
-var expect = require('chai').expect;
-
 var ReversibleSchema = require('../../lib/schema/reversible');
 var Schema = require('../../lib/schema');
 var schema;
 
-describe('ReversibleSchema', __query(function(query) {
+describe('ReversibleSchema', __query(function() {
+  /* global query */
+
   beforeEach(function() { schema = query.schema().reversible(); });
 
   it('cannot be created directly', function() {
@@ -27,13 +27,11 @@ describe('ReversibleSchema', __query(function(query) {
   describe('#createTable', function() {
 
     it('is reversible', function() {
-      var query = schema.createTable('users', function(table) {
+      schema.createTable('users', function(table) {
         table.string('name');
-      });
-      expect(query).to.be.query(
-        'CREATE TABLE "users" '+
-        '("id" serial PRIMARY KEY, "name" varchar(255))', []
-      );
+      })
+      .should.be.a.query('CREATE TABLE "users" '+
+        '("id" serial PRIMARY KEY, "name" varchar(255))');
     });
 
   });
@@ -41,12 +39,11 @@ describe('ReversibleSchema', __query(function(query) {
   describe('#alterTable', function() {
 
     it('is reversible', function() {
-      var query = schema.alterTable('users', function(table) {
+      schema.alterTable('users', function(table) {
         table.string('name');
-      });
-      expect(query).to.be.query(
-        'ALTER TABLE "users" ADD COLUMN "name" varchar(255)', []
-      );
+      })
+      .should.be.a.query('ALTER TABLE "users" ' +
+        'ADD COLUMN "name" varchar(255)');
     });
 
     it('is not reversible when columns are dropped', function() {
@@ -70,10 +67,8 @@ describe('ReversibleSchema', __query(function(query) {
   describe('#renameTable', function() {
 
     it('is reversible', function() {
-      var query = schema.renameTable('users', 'accounts');
-      expect(query).to.be.query(
-        'ALTER TABLE "users" RENAME TO "accounts"', []
-      );
+      schema.renameTable('users', 'accounts')
+      .should.be.a.query('ALTER TABLE "users" RENAME TO "accounts"');
     });
 
   });
@@ -109,6 +104,6 @@ describe('ReversibleSchema', __query(function(query) {
       .difference(defined) // remove any methods defined on reverse
       .difference(['reversible', 'reverse']) // whitelist
       .value();
-    expect(notOverridden).to.eql([]);
+    notOverridden.should.eql([]);
   });
 }));

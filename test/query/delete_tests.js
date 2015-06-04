@@ -2,13 +2,12 @@
 
 require('../helpers');
 
-var chai = require('chai');
-var expect = chai.expect;
-
 var DeleteQuery = require('../../lib/query/delete');
 var del;
 
-describe('DeleteQuery', __query(function(query) {
+describe('DeleteQuery', __query(function() {
+  /* global query */
+
   beforeEach(function() { del = query.delete.bind(query); });
 
   it('cannot be created directly', function() {
@@ -18,11 +17,11 @@ describe('DeleteQuery', __query(function(query) {
   });
 
   it('deletes data', function() {
-    expect(del('users')).to.be.query('DELETE FROM "users"', []);
+    del('users').should.be.a.query('DELETE FROM "users"');
   });
 
   it('can be filtered', function() {
-    expect(del('users').where({ id: 1 }))
-      .to.be.query('DELETE FROM "users" WHERE "id" = ?', [1]);
+    del('users').where({ id: 1 })
+    .should.be.a.query('DELETE FROM "users" WHERE "id" = ?', [1]);
   });
 }));

@@ -2,38 +2,28 @@
 
 require('../helpers');
 
-var chai = require('chai');
-var expect = chai.expect;
-var sinon = require('sinon');
-
-var EntryQuery = require('../../lib/query/entry');
 var TransactionQuery = require('../../lib/query/transaction');
-var FakeAdapter = require('../fakes/adapter');
-var Statement = require('../../lib/types/statement');
 var BaseQuery = require('../../lib/query/base');
 var Promise = require('bluebird');
 
 var transaction;
-var query;
-var adapter;
 
-describe('Transaction Mixin', function() {
+describe('Transaction Mixin', __query(function() {
+  /* global query */
+
   beforeEach(function() {
-    adapter = FakeAdapter.create({});
-    query = EntryQuery.create(adapter);
     transaction = query.transaction.bind(query);
   });
 
-  beforeEach(function(done) {
+  beforeEach(function() {
     // spy after pool has been set up. the only way to tell is to get a
     // client and release it.
-    query._adapter.pool.acquireAsync().then(function(client) {
+    return query._adapter.pool.acquireAsync().then(function(client) {
       query._adapter.pool.release(client);
       sinon.spy(query._adapter, '_execute');
       sinon.spy(query._adapter.pool, 'acquire');
       sinon.spy(query._adapter.pool, 'release');
-    })
-    .done(done, done);
+    });
   });
 
   afterEach(function() {
@@ -83,29 +73,25 @@ describe('Transaction Mixin', function() {
     });
 
     it('includes sql', function() {
-      expect(this.begin.statement).to.eql(Statement.create(
-        'BEGIN', []
-      ));
+      this.begin.should.be.a.query('BEGIN');
     });
 
-    it('can be committed', function(done) {
-      this.begin.execute().bind(this).then(function() {
-        var commit = this.transaction.commit();
-        expect(commit.statement).to.eql(Statement.create('COMMIT', []));
-      })
-      .done(done, done);
+    it('can be committed', function() {
+      return this.begin.execute().bind(this).then(function() {
+        this.transaction.commit()
+        .should.be.a.query('COMMIT');
+      });
     });
 
-    it('can be rolled back', function(done) {
-      this.begin.execute().bind(this).then(function() {
-        var rollback = this.transaction.rollback();
-        expect(rollback.statement).to.eql(Statement.create('ROLLBACK', []));
-      })
-      .done(done, done);
+    it('can be rolled back', function() {
+      return this.begin.execute().bind(this).then(function() {
+        this.transaction.rollback()
+        .should.be.a.query('ROLLBACK');
+      });
     });
 
-    it('preforms commit with same client', function(done) {
-      this.begin.execute().bind(this)
+    it('preforms commit with same client', function() {
+      return this.begin.execute().bind(this)
       .then(function() { return this.transaction.acquireClient(); })
       .then(function(client) { this.client = client; })
       .then(function() {
@@ -114,12 +100,11 @@ describe('Transaction Mixin', function() {
       .then(function() {
         expect(query._adapter._execute).to.have.been
           .calledWithExactly(this.client, 'COMMIT', []);
-      })
-      .done(done, done);
+      });
     });
 
-    it('preforms rollback with same client', function(done) {
-      this.begin.execute().bind(this)
+    it('preforms rollback with same client', function() {
+      return this.begin.execute().bind(this)
       .then(function() { return this.transaction.acquireClient(); })
       .then(function(client) { this.client = client; })
       .then(function() {
@@ -128,12 +113,11 @@ describe('Transaction Mixin', function() {
       .then(function() {
         expect(query._adapter._execute).to.have.been
           .calledWithExactly(this.client, 'ROLLBACK', []);
-      })
-      .done(done, done);
+      });
     });
 
-    it('performs duplicated commits with the same client', function(done) {
-      this.begin.execute().bind(this)
+    it('performs duplicated commits with the same client', function() {
+      return this.begin.execute().bind(this)
       .then(function() { return this.transaction.acquireClient(); })
       .then(function(client) { this.client = client; })
       .then(function() {
@@ -142,12 +126,11 @@ describe('Transaction Mixin', function() {
       .then(function() {
         expect(query._adapter._execute).to.have.been
           .calledWithExactly(this.client, 'COMMIT', []);
-      })
-      .done(done, done);
+      });
     });
 
-    it('releases client back to pool on commit', function(done) {
-      this.begin.execute().bind(this)
+    it('releases client back to pool on commit', function() {
+      return this.begin.execute().bind(this)
       .then(function() { return this.transaction.acquireClient(); })
       .then(function(client) { this.client = client; })
       .then(function() {
@@ -158,46 +141,29 @@ describe('Transaction Mixin', function() {
         expect(query._adapter.pool.release).to.have.been.calledOnce;
         expect(query._adapter.pool.release).to.have.been
           .calledWithExactly(this.client);
-      })
-      .done(done, done);
+      });
     });
 
-    it('cannot use commit before begin', function(done) {
-      this.transaction.commit().execute().bind(this)
-      .throw(new Error('Expected query execution to fail.'))
-      .catch(function(e) {
-        expect(e).to.match(/execute.*transaction.*not open/i);
-      })
-      .done(done, done);
+    it('cannot use commit before begin', function() {
+      return this.transaction.commit()
+      .should.eventually.be.rejectedWith(/execute.*transaction.*not open/i);
     });
 
-    it('cannot use rollback before begin', function(done) {
-      this.transaction.rollback().execute().bind(this)
-      .throw(new Error('Expected query execution to fail.'))
-      .catch(function(e) {
-        expect(e).to.match(/execute.*transaction.*not open/i);
-      })
-      .done(done, done);
+    it('cannot use rollback before begin', function() {
+      return this.transaction.rollback()
+      .should.eventually.be.rejectedWith(/execute.*transaction.*not open/i);
     });
 
-    it('cannot execute query before begin', function(done) {
-      query.select('users').transaction(this.transaction).execute().bind(this)
-      .throw(new Error('Expected query execution to fail.'))
-      .catch(function(e) {
-        expect(e).to.match(/execute.*transaction.*not open/i);
-      })
-      .done(done, done);
+    it('cannot execute query before begin', function() {
+      return query.select('users').transaction(this.transaction)
+      .should.eventually.be.rejectedWith(/execute.*transaction.*not open/i);
     });
 
-    it('cannot over-commit', function(done) {
-      this.begin.execute().bind(this)
+    it('cannot over-commit', function() {
+      return this.begin.execute().bind(this)
       .then(function() { return this.transaction.commit(); })
       .then(function() { return this.transaction.commit(); })
-      .throw(new Error('Expected query execution to fail.'))
-      .catch(function(e) {
-        expect(e).to.match(/execute.*transaction.*not open/i);
-      })
-      .done(done, done);
+      .should.eventually.be.rejectedWith(/execute.*transaction.*not open/i);
     });
 
     describe('a select that uses the transaction', function() {
@@ -206,27 +172,21 @@ describe('Transaction Mixin', function() {
       });
 
       it('generates standard sql', function() {
-        expect(this.selectQuery.statement).to.eql(Statement.create(
-          'SELECT * FROM "users"', []
-        ));
+        this.selectQuery.should.be.a.query('SELECT * FROM "users"');
       });
 
       it('shares the transaction', function() {
         expect(this.selectQuery.transaction()).to.equal(this.transaction);
       });
 
-      it('cannot run if initial transaction was committed', function(done) {
-        this.begin.execute().bind(this).then(function() {
+      it('cannot run if initial transaction was committed', function() {
+        return this.begin.execute().bind(this).then(function() {
           return this.transaction.commit();
         })
         .then(function() {
           return this.selectQuery.execute();
         })
-        .throw(new Error('Expected query execution to fail.'))
-        .catch(function(e) {
-          expect(e).to.match(/execute.*transaction.*not open/i);
-        })
-        .done(done, done);
+        .should.eventually.be.rejectedWith(/execute.*transaction.*not open/i);
       });
 
       describe('when executed', function() {
@@ -237,12 +197,12 @@ describe('Transaction Mixin', function() {
           this.transaction.acquireClient.restore();
         });
 
-        beforeEach(function(done) {
-          this.begin.execute().then(function() { done(); }, done);
+        beforeEach(function() {
+          return this.begin.execute();
         });
 
-        beforeEach(function(done) {
-          this.selectQuery.execute().then(function() { done(); }, done);
+        beforeEach(function() {
+          return this.selectQuery.execute();
         });
 
         it('first acquires a client', function() {
@@ -262,13 +222,13 @@ describe('Transaction Mixin', function() {
       });
     });
 
-    it('can be nested', function(done) {
+    it('can be nested', function() {
       // note that we're intentionally not executing this.begin in this test &
       // expect that everything will still work as expected.
       var txn = this.transaction;
       var txnQuery = query.transaction(txn);
       var client;
-      Promise.resolve()
+      return Promise.resolve()
       .then(function() { return txn.begin(); })
       .then(function() { return txn.acquireClient(); })
       .then(function(_client) { client = _client; })
@@ -293,8 +253,7 @@ describe('Transaction Mixin', function() {
             .calledWithExactly(client, 'COMMIT', []);
           expect(txnQuery._adapter._execute.getCall(6)).to.have.been
             .calledWithExactly(client, 'COMMIT', []);
-      })
-      .done(done, done);
+      });
     });
   });
-});
+}));

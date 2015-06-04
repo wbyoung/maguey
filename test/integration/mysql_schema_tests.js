@@ -4,9 +4,6 @@ require('../helpers');
 
 if (!/^(1|true)$/i.test(process.env.TEST_SQLITE || '1')) { return; }
 
-var chai = require('chai');
-var expect = chai.expect;
-var sinon = require('sinon');
 var schema;
 
 var executedSQL, config = {
@@ -18,7 +15,9 @@ var executedSQL, config = {
   }
 };
 
-describe('MySQL schema', __connect(config, function(query, adapter) {
+describe('MySQL schema', __connect(config, function() {
+  /* global query, adapter */
+
   beforeEach(function() { schema = query.schema(); });
   beforeEach(function() {
     sinon.spy(adapter, '_execute');
@@ -36,23 +35,18 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
   });
 
   describe('creating a table', function() {
-    beforeEach(function(done) {
-      schema.createTable('people', function(table) {
+    beforeEach(function() {
+      return schema.createTable('people', function(table) {
         table.serial('id').pk().notNull();
         table.string('first_name');
         table.integer('best_friend_id').references('id');
         table.index('first_name');
       })
-      .execute()
-      .return()
-      .then(done, done);
+      .execute();
     });
 
-    afterEach(function(done) {
-      schema.dropTable('people')
-        .execute()
-        .return()
-        .then(done, done);
+    afterEach(function() {
+      return schema.dropTable('people').execute();
     });
 
     it('was created with the right sql', function() {
@@ -71,7 +65,7 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
         sinon.spy(adapter, '_execute');
       });
 
-      it('can rename columns', function(done) {
+      it('can rename columns', function() {
         var alter = schema.alterTable('people', function(table) {
           table.rename('first_name', 'first', 'string');
         });
@@ -79,16 +73,15 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
         expect(alter.sql).to.eql('ALTER TABLE `people` ' +
           'CHANGE `first_name` `first` varchar(255)');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'ALTER TABLE `people` CHANGE `first_name` `first` varchar(255)', []]
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can add an index', function(done) {
+      it('can add an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.index(['first_name', 'best_friend_id']);
         });
@@ -97,18 +90,17 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
           '`people_first_name_best_friend_id_idx` ON `people` ' +
           '(`first_name`, `best_friend_id`)');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'CREATE INDEX ' +
                 '`people_first_name_best_friend_id_idx` ON `people` ' +
                 '(`first_name`, `best_friend_id`)', []]
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can drop an index', function(done) {
+      it('can drop an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.dropIndex('first_name');
         });
@@ -116,16 +108,15 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
         expect(alter.sql).to
           .eql('DROP INDEX `people_first_name_idx` ON `people`');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'DROP INDEX `people_first_name_idx` ON `people`', []]
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can rename an index', function(done) {
+      it('can rename an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.renameIndex('people_first_name_idx', 'bff_idx');
         });
@@ -134,7 +125,7 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
           .eql('-- procedure for ALTER INDEX `people_first_name_idx` ' +
             'RENAME TO `bff_idx`');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'BEGIN', []],
@@ -145,11 +136,10 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
               'USING BTREE ON `people` (`first_name`)', []],
             [c, 'COMMIT', []],
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can add a column and named index', function(done) {
+      it('can add a column and named index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.string('last_name');
           table.index('last_name', { name: 'surname_index' });
@@ -160,16 +150,15 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
 
         expect(alter.sql).to.eql(expectedSQL);
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, expectedSQL, []]
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can add, rename, & index simultaneously', function(done) {
+      it('can add, rename, & index simultaneously', function() {
         var alter = schema.alterTable('people', function(table) {
           table.string('last');
           table.rename('first_name', 'first', 'string');
@@ -185,7 +174,7 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
           'ADD INDEX `people_first_last_idx` (`first`, `last`), ' +
           'RENAME INDEX `people_first_last_idx` TO `name_idx`');
 
-        alter.then(function() {
+        return alter.then(function() {
           var c = executedSQL()[0][0];
           expect(executedSQL()).to.eql([
             [c, 'BEGIN', []],
@@ -201,12 +190,11 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
 
             [c, 'COMMIT', []],
           ]);
-        })
-        .then(done, done);
+        });
       });
 
-      it('can add columns with foreign keys', function(done) {
-        schema.alterTable('people', function(table) {
+      it('can add columns with foreign keys', function() {
+        return schema.alterTable('people', function(table) {
           table.integer('worst_enemy_id').references('id');
         })
         .then(function() {
@@ -215,33 +203,28 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
             [c, 'ALTER TABLE `people` ADD COLUMN `worst_enemy_id` integer, ' +
               'ADD FOREIGN KEY (`worst_enemy_id`) REFERENCES `people` (`id`)', []],
           ]);
-        })
-        .then(done, done);
+        });
       });
     });
 
   });
 
   describe('with a custom table', function() {
-    beforeEach(function(done) {
+    beforeEach(function() {
       var sql = 'CREATE TABLE `people` (`id` integer ' +
         'PRIMARY KEY, `name` varchar(255), UNIQUE INDEX (`name`(2)))';
-      query.raw(sql)
+      return query.raw(sql)
       .then(function() {
         adapter._execute.restore();
         sinon.spy(adapter, '_execute');
-      })
-      .then(done, done);
+      });
     });
 
-    afterEach(function(done) {
-      schema.dropTable('people')
-        .execute()
-        .return()
-        .then(done, done);
+    afterEach(function() {
+      return schema.dropTable('people').execute();
     });
 
-    it('can rename an index', function(done) {
+    it('can rename an index', function() {
       var alter = schema.alterTable('people', function(table) {
         table.renameIndex('name', 'name_idx');
       });
@@ -250,7 +233,7 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
         .eql('-- procedure for ALTER INDEX `name` ' +
           'RENAME TO `name_idx`');
 
-      alter.then(function() {
+      return alter.then(function() {
         var c = executedSQL()[0][0];
         expect(executedSQL()).to.eql([
           [c, 'BEGIN', []],
@@ -261,8 +244,7 @@ describe('MySQL schema', __connect(config, function(query, adapter) {
             'USING BTREE ON `people` (`name`(2))', []],
           [c, 'COMMIT', []],
         ]);
-      })
-      .then(done, done);
+      });
     });
   });
 

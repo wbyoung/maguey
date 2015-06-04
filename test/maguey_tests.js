@@ -2,9 +2,6 @@
 
 require('./helpers');
 
-var chai = require('chai');
-var expect = chai.expect;
-
 var maguey = require('..');
 
 describe('maguey', function() {

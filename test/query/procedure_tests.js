@@ -2,9 +2,6 @@
 
 require('../helpers');
 
-var chai = require('chai');
-var expect = chai.expect;
-
 var Procedure = require('../../lib/query/mixins/procedure');
 
 describe('Procedure Mixin', function() {

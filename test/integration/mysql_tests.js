@@ -9,7 +9,6 @@ require('../helpers');
 if (!/^(1|true)$/i.test(process.env.TEST_MYSQL || '1')) { return; }
 
 var _ = require('lodash');
-var expect = require('chai').expect;
 var Promise = require('bluebird');
 var returning = require('../../lib/adapters/mixins/returning');
 var PseudoReturn = returning.PseudoReturn;
@@ -35,12 +34,14 @@ var castDatabaseValue = function(type, value) {
   return value;
 };
 
-describe('MySQL', __connect(config, function(query, adapter) {
+describe('MySQL', __connect(config, function() {
+  /* global query, adapter */
+
   before(function() { this.query = query; });
   before(function() { this.resetSequence = resetSequence; });
   before(function() { this.castDatabaseValue = castDatabaseValue; });
 
-  it('executes raw sql', function(done) {
+  it('executes raw sql', function() {
     var returnId = PseudoReturn.create('id');
     var queries = [
       ['CREATE TABLE maguey_raw_sql_test (id serial, name varchar(255))'],
@@ -48,7 +49,7 @@ describe('MySQL', __connect(config, function(query, adapter) {
       ['SELECT * FROM maguey_raw_sql_test'],
       ['DROP TABLE maguey_raw_sql_test']
     ];
-    Promise.reduce(queries, function(array, info) {
+    return Promise.reduce(queries, function(array, info) {
       var query = info[0], args = info[1] || [];
       return adapter.execute(query, args).then(function(result) {
         return array.concat([result]);
@@ -63,29 +64,23 @@ describe('MySQL', __connect(config, function(query, adapter) {
         rows: [{ id: 1, name: 'Azul' }],
         fields: ['id', 'name'] });
       expect(result4).to.eql({ rows: [], fields: [] });
-    })
-    .done(done, done);
+    });
   });
 
-  it('receives rows from raw sql', function(done) {
+  it('receives rows from raw sql', function() {
     var query = 'SELECT CAST(? AS SIGNED) AS number';
     var args = ['1'];
-    adapter.execute(query, args)
+    return adapter.execute(query, args)
     .then(function(result) {
       expect(result.rows).to.eql([{ number: 1 }]);
-    })
-    .done(done, done);
+    });
   });
 
-  it('reports errors', function(done) {
+  it('reports errors', function() {
     var query = 'SELECT & FROM ^';
     var args = [];
-    adapter.execute(query, args)
-    .throw(new Error('Expected query to fail.'))
-    .catch(function(e) {
-      expect(e.message).to.match(/PARSE_ERROR.*syntax.*MySQL/i);
-    })
-    .done(done, done);
+    return adapter.execute(query, args)
+    .should.eventually.be.rejectedWith(/PARSE_ERROR.*syntax.*MySQL/i);
   });
 
   it('provides defaults for decimal', function() {
@@ -94,25 +89,22 @@ describe('MySQL', __connect(config, function(query, adapter) {
   });
 
   describe('with simple table', function() {
-    before(function(done) {
-      adapter
-        .execute('CREATE TABLE maguey_test (id serial, name varchar(255))', [])
-        .then(_.ary(done, 0), done);
+    before(function() {
+      return adapter
+        .execute('CREATE TABLE maguey_test (id serial, name varchar(255))', []);
     });
 
-    after(function(done) {
-      adapter
-        .execute('DROP TABLE maguey_test', [])
-        .then(_.ary(done, 0), done);
+    after(function() {
+      return adapter
+        .execute('DROP TABLE maguey_test', []);
     });
 
-    it('returning does not work on non primary key', function(done) {
-      query.insert('maguey_test', { name: 'Azul' })
+    it('returning does not work on non primary key', function() {
+      return query.insert('maguey_test', { name: 'Azul' })
       .returning('name')
       .then(function(data) {
         expect(data.rows[0].name).to.not.eql('Azul');
-      })
-      .then(done, done);
+      });
     });
   });
 
