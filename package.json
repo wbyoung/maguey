@@ -1,6 +1,6 @@
 {
   "name": "maguey",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Simple database queries for Node.js",
   "homepage": "https://github.com/wbyoung/maguey",
   "main": "index.js",
