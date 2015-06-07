@@ -8,8 +8,8 @@
     "url": "https://github.com/wbyoung/maguey/issues"
   },
   "scripts": {
-    "test": "jshint . && istanbul cover node_modules/.bin/_mocha --report html --",
-    "test-travis": "jshint . && istanbul cover node_modules/.bin/_mocha --report lcovonly --"
+    "test": "jshint . && jscs *.js lib && istanbul cover node_modules/.bin/_mocha --report html --",
+    "test-travis": "jshint . && jscs *.js lib && istanbul cover node_modules/.bin/_mocha --report lcovonly --"
   },
   "files": [
     "index.js",
@@ -34,6 +34,8 @@
     "chai": "^2.3.0",
     "chai-as-promised": "^5.0.0",
     "istanbul": "^0.3.14",
+    "jscs": "^1.13.1",
+    "jscs-jsdoc": "jscs-dev/jscs-jsdoc",
     "jshint": "^2.8.0",
     "maguey-chai": "^0.3.0",
     "mocha": "^2.2.5",
