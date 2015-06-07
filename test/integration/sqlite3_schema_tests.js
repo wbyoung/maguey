@@ -12,8 +12,8 @@ var anySQL = _.partial(_.times, _, _.constant(/^/));
 var config = {
   adapter: 'sqlite3',
   connection: {
-    filename: ''
-  }
+    filename: '',
+  },
 };
 
 describe('SQLite3 schema', __connect(config, function() {

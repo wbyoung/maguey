@@ -12,8 +12,8 @@ describe('maguey', function() {
       connection: {
         username: 'root',
         password: '',
-        database: 'maguey_test'
-      }
+        database: 'maguey_test',
+      },
     };
     expect(function() {
       maguey(config);

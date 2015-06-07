@@ -45,7 +45,7 @@ describe('InsertQuery', __query(function() {
   it('inserts multiple sets of with different keys', function() {
     insert('users', [
       { name: 'Whitney',  address: 'Portland' },
-      { name: 'Brittany'}
+      { name: 'Brittany'},
     ])
     .should.be.a.query('INSERT INTO "users" ("name", "address") ' +
       'VALUES (?, ?), (?, ?)', ['Whitney', 'Portland', 'Brittany', undefined]);

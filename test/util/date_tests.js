@@ -14,7 +14,7 @@ describe('date', function() {
       'wednesday', 'wed',
       'thursday', 'thurs',
       'friday', 'fri',
-      'saturday', 'sat'
+      'saturday', 'sat',
     ].map(date.parseWeekdayToInt)).to.eql([
       0, 0,
       1, 1,
@@ -22,7 +22,7 @@ describe('date', function() {
       3, 3,
       4, 4,
       5, 5,
-      6, 6
+      6, 6,
     ]);
   });
 

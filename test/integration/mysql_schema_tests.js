@@ -11,8 +11,8 @@ var config = {
   connection: {
     user: process.env.MYSQL_USER || 'root',
     password: process.env.MYSQL_PASSWORD || '',
-    database: process.env.MYSQL_DATABASE || 'maguey_test'
-  }
+    database: process.env.MYSQL_DATABASE || 'maguey_test',
+  },
 };
 
 describe('MySQL schema', __connect(config, function() {

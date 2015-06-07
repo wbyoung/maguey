@@ -207,7 +207,8 @@ describe('SelectQuery', __query(function() {
 
   it('gives an error when fetchOne gets multiple results', function() {
     adapter.respond(/select.*from "users"/i, [
-      { id: 1, title: '1' }, { id: 2, title: '2' }]);
+      { id: 1, title: '1' }, { id: 2, title: '2' },
+    ]);
     return select('users').fetchOne()
     .throw(new Error('Expected query to fail.'))
     .catch(function(e) {
@@ -244,7 +245,7 @@ describe('SelectQuery', __query(function() {
     it('emits events in the proper sequence', function() {
       var data = {
         fields: ['id', 'title'],
-        rows: [{ id: 1, title: '1' }, { id: 2, title: '2' }]
+        rows: [{ id: 1, title: '1' }, { id: 2, title: '2' }],
       };
 
       var execute = sinon.spy(function execute() {});
@@ -281,7 +282,7 @@ describe('SelectQuery', __query(function() {
     it('emits results for transformed queries', function() {
       var data = {
         fields: ['id', 'title'],
-        rows: [{ id: 1, title: '1' }, { id: 2, title: '2' }]
+        rows: [{ id: 1, title: '1' }, { id: 2, title: '2' }],
       };
       var rawResult = sinon.spy(function rawResult() {});
       var result = sinon.spy(function result() {});

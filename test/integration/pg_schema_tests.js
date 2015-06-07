@@ -17,8 +17,8 @@ var config = {
   connection: {
     user: process.env.PG_USER || 'root',
     password: process.env.PG_PASSWORD || '',
-    database: process.env.PG_DATABASE || 'maguey_test'
-  }
+    database: process.env.PG_DATABASE || 'maguey_test',
+  },
 };
 
 describe('PostgreSQL schema', __connect(config, function() {

@@ -19,8 +19,8 @@ var config = {
   connection: {
     user: process.env.MYSQL_USER || 'root',
     password: process.env.MYSQL_PASSWORD || '',
-    database: process.env.MYSQL_DATABASE || 'maguey_test'
-  }
+    database: process.env.MYSQL_DATABASE || 'maguey_test',
+  },
 };
 
 var resetSequence = function(table) {
@@ -47,7 +47,7 @@ describe('MySQL', __connect(config, function() {
       ['CREATE TABLE maguey_raw_sql_test (id serial, name varchar(255))'],
       ['INSERT INTO maguey_raw_sql_test (name) VALUES (\'Azul\')', [returnId]],
       ['SELECT * FROM maguey_raw_sql_test'],
-      ['DROP TABLE maguey_raw_sql_test']
+      ['DROP TABLE maguey_raw_sql_test'],
     ];
     return Promise.reduce(queries, function(array, info) {
       var query = info[0], args = info[1] || [];
@@ -59,10 +59,12 @@ describe('MySQL', __connect(config, function() {
     .spread(function(result1, result2, result3, result4) {
       expect(result1).to.eql({ rows: [], fields: [] });
       expect(result2).to.eql({
-        rows: [{ id: 1 }], fields: ['id'] });
+        rows: [{ id: 1 }], fields: ['id'],
+      });
       expect(result3).to.eql({
         rows: [{ id: 1, name: 'Azul' }],
-        fields: ['id', 'name'] });
+        fields: ['id', 'name'],
+      });
       expect(result4).to.eql({ rows: [], fields: [] });
     });
   });

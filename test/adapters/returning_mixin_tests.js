@@ -21,7 +21,7 @@ describe('Adapter with PseudoReturn', function() {
       _disconnect: Promise.method(function() {}),
       _execute: Promise.method(function() {
         return this.fns.execute.apply(this, arguments);
-      }.bind(this))
+      }.bind(this)),
     });
     CustomAdapter.reopenClass({ Phrasing: Adapter.Phrasing.extend() });
     CustomAdapter.Phrasing.reopen(EmbedPseudoReturn);

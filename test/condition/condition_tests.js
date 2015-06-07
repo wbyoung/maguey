@@ -18,7 +18,7 @@ describe('Condition', function() {
       field: function(field) { return field; },
       value: function(value) {
         return util.format('%j', value);
-      }
+      },
     }).create();
     this.translator = Translator.extend({}).create();
     this.stringify = function(condition) {
@@ -40,7 +40,7 @@ describe('Condition', function() {
   it('must yield an expression when being constructed', function() {
     // the only way to test this is to override a private method
     var ConditionOverride = Condition.extend({
-      _reduceBinary: function() { return []; }
+      _reduceBinary: function() { return []; },
     });
     expect(function() {
       ConditionOverride.create({});
@@ -165,7 +165,7 @@ describe('Condition', function() {
     };
 
     ['contains', 'icontains', 'startswith', 'istartswith',
-     'endswith', 'iendswith' ].forEach(shouldBehaveLikeALikeQuery);
+     'endswith', 'iendswith', ].forEach(shouldBehaveLikeALikeQuery);
 
     it('supports in', function() {
       var result = this.stringify(w({ name$in: ['Whit', 'Whitney'] }));
@@ -207,7 +207,7 @@ describe('Condition', function() {
       expect(result).to.eql('name LIKE "%Whit"');
     });
 
-    it('supports iendswith', function() {
+    it('supports mysql_tests.js', function() {
       var result = this.stringify(w({ name$iendswith: 'Whit' }));
       expect(result).to.eql('UPPER(name) LIKE UPPER("%Whit")');
     });
@@ -225,7 +225,7 @@ describe('Condition', function() {
     it('supports between for dates', function() {
       var range = [
         new Date(Date.UTC(2014, 10-1, 23)),
-        new Date(Date.UTC(2014, 10-1, 24))
+        new Date(Date.UTC(2014, 10-1, 24)),
       ];
       var result = this.stringify(w({ created$between: range }));
       var expected = 'created BETWEEN "2014-10-23T00:00:00.000Z" AND ' +

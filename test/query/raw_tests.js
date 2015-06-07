@@ -57,7 +57,7 @@ describe('RawQuery', __query(function() {
       return Promise.settle([
         query.execute(),
         query.execute(),
-        query.execute()
+        query.execute(),
       ]).then(function() {
         query._adapter.execute.should.have.been.calledOnce;
       });
