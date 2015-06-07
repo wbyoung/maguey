@@ -4,10 +4,12 @@ require('../helpers');
 
 if (!/^(1|true)$/i.test(process.env.TEST_SQLITE || '1')) { return; }
 
+var _ = require('lodash');
 var EntryQuery = require('../../lib/query/entry');
 var schema;
+var anySQL = _.partial(_.times, _, _.constant(/^/));
 
-var executedSQL, config = {
+var config = {
   adapter: 'sqlite3',
   connection: {
     filename: ''
@@ -18,20 +20,6 @@ describe('SQLite3 schema', __connect(config, function() {
   /* global query, adapter */
 
   beforeEach(function() { schema = query.schema(); });
-  beforeEach(function() {
-    sinon.spy(adapter, '_execute');
-    executedSQL = function() {
-      var result = [];
-      adapter._execute.getCalls().forEach(function(call) {
-        result.push(call.args.slice(0,3));
-      });
-      return result;
-    };
-  });
-
-  afterEach(function() {
-    adapter._execute.restore();
-  });
 
   describe('creating a table', function() {
     beforeEach(function() {
@@ -49,81 +37,67 @@ describe('SQLite3 schema', __connect(config, function() {
     });
 
     it('was created with the right sql', function() {
-      expect(this.create.sql).to.eql('-- procedure for ' +
+      this.create.should.have.property('sql', '-- procedure for ' +
         'CREATE TABLE "people" (' +
-          '"id" integer PRIMARY KEY NOT NULL, ' +
-          '"first_name" varchar(255), ' +
-          '"best_friend_id" integer DEFAULT 1 REFERENCES "people" ("id"), ' +
-          'INDEX "people_best_friend_id_idx" ("best_friend_id"))');
+        '"id" integer PRIMARY KEY NOT NULL, ' +
+        '"first_name" varchar(255), ' +
+        '"best_friend_id" integer DEFAULT 1 REFERENCES "people" ("id"), ' +
+        'INDEX "people_best_friend_id_idx" ("best_friend_id"))');
 
-      var c = executedSQL()[0][0];
-      expect(executedSQL()).to.eql([
-        [c, 'SAVEPOINT AZULJS_1', []],
-        [c, 'CREATE TABLE "people" (' +
-          '"id" integer PRIMARY KEY NOT NULL, ' +
-          '"first_name" varchar(255), ' +
-          '"best_friend_id" integer DEFAULT 1 ' +
-          'REFERENCES "people" ("id"))', []],
-        [c, 'CREATE INDEX "people_best_friend_id_idx" ' +
-          'ON "people" ("best_friend_id")', []],
-        [c, 'RELEASE AZULJS_1', []],
-      ]);
+      adapter.should.have.executed('SAVEPOINT AZULJS_1',
+        'CREATE TABLE "people" (' +
+        '"id" integer PRIMARY KEY NOT NULL, ' +
+        '"first_name" varchar(255), ' +
+        '"best_friend_id" integer DEFAULT 1 ' +
+        'REFERENCES "people" ("id"))',
+
+        'CREATE INDEX "people_best_friend_id_idx" ' +
+        'ON "people" ("best_friend_id")',
+
+        'RELEASE AZULJS_1')
+      .and.used.oneClient;
     });
 
     describe('after creation', function() {
-      beforeEach(function() {
-        adapter._execute.restore();
-        sinon.spy(adapter, '_execute');
-      });
+      beforeEach(function() { adapter.scope(); });
+      afterEach(function() { adapter.unscope(); });
 
       it('can add columns', function() {
         var alter = schema.alterTable('people', function(table) {
           table.string('last_name');
         });
+        var sql = 'ALTER TABLE "people" ADD COLUMN "last_name" varchar(255)';
 
-        expect(alter.sql).to.not.match(/^--/);
-
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'ALTER TABLE "people" ADD COLUMN "last_name" varchar(255)', []]
-          ]);
-        });
+        alter.should.have.property('sql', sql);
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed(sql)
+        .and.used.oneClient;
       });
 
       it('can add an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.index(['first_name', 'best_friend_id']);
         });
-
-        expect(alter.sql).to.eql('CREATE INDEX ' +
+        var sql = 'CREATE INDEX ' +
           '"people_first_name_best_friend_id_idx" ON "people" ' +
-          '("first_name", "best_friend_id")');
+          '("first_name", "best_friend_id")';
 
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'CREATE INDEX ' +
-            '"people_first_name_best_friend_id_idx" ON "people" ' +
-            '("first_name", "best_friend_id")', []]
-          ]);
-        });
+        alter.should.have.property('sql', sql);
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed(sql)
+        .and.used.oneClient;
       });
 
       it('can drop an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.dropIndex('best_friend_id');
         });
+        var sql = 'DROP INDEX "people_best_friend_id_idx"';
 
-        expect(alter.sql).to
-          .eql('DROP INDEX "people_best_friend_id_idx"');
-
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'DROP INDEX "people_best_friend_id_idx"', []]
-          ]);
-        });
+        alter.should.have.property('sql', sql);
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed(sql)
+        .and.used.oneClient;
       });
 
       it('can rename an index', function() {
@@ -131,21 +105,17 @@ describe('SQLite3 schema', __connect(config, function() {
           table.renameIndex('people_best_friend_id_idx', 'bff_idx');
         });
 
-        expect(alter.sql).to
-          .eql('-- procedure for ALTER INDEX "people_best_friend_id_idx" ' +
-            'RENAME TO "bff_idx"');
+        alter.should.have.property('sql', '-- procedure for ' +
+          'ALTER INDEX "people_best_friend_id_idx" ' +
+          'RENAME TO "bff_idx"');
 
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'SAVEPOINT AZULJS_1', []],
-            [c, 'PRAGMA index_info("people_best_friend_id_idx")', []],
-            [c, 'DROP INDEX "people_best_friend_id_idx"', []],
-            [c, 'CREATE INDEX "bff_idx" ' +
-              'ON "people" ("best_friend_id")', []],
-            [c, 'RELEASE AZULJS_1', []],
-          ]);
-        });
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed('SAVEPOINT AZULJS_1',
+          'PRAGMA index_info("people_best_friend_id_idx")',
+          'DROP INDEX "people_best_friend_id_idx"',
+          'CREATE INDEX "bff_idx" ON "people" ("best_friend_id")',
+          'RELEASE AZULJS_1')
+        .and.used.oneClient;
       });
 
       it('can rename columns', function() {
@@ -153,33 +123,35 @@ describe('SQLite3 schema', __connect(config, function() {
           table.rename('first_name', 'first', 'string');
         });
 
-        expect(alter.sql).to.eql('-- procedure for ' +
+        alter.should.have.property('sql', '-- procedure for ' +
           'ALTER TABLE "people" RENAME "first_name" TO "first"');
 
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'SAVEPOINT AZULJS_1', []],
-            [c, 'PRAGMA defer_foreign_keys=1', []],
-            [c, 'PRAGMA table_info("people")', []],
-            [c, 'PRAGMA index_list("people")', []],
-            [c, 'PRAGMA index_info("people_best_friend_id_idx")', []],
-            [c, 'PRAGMA foreign_key_list("people")', []],
-            [c, 'ALTER TABLE "people" RENAME TO "people_old"', []],
-            [c, 'CREATE TABLE "people" (' +
-              '"id" integer PRIMARY KEY NOT NULL, ' +
-              '"first" varchar(255), ' +
-              '"best_friend_id" integer DEFAULT 1, ' +
-              'FOREIGN KEY ("best_friend_id") REFERENCES "people" ("id") ' +
-              'ON DELETE NO ACTION ON UPDATE NO ACTION MATCH NONE)', []],
-            [c, 'INSERT INTO "people" ("id", "first", "best_friend_id") ' +
-              'SELECT "id", "first_name", "best_friend_id" FROM "people_old"', []],
-            [c, 'DROP TABLE "people_old"', []],
-            [c, 'CREATE INDEX "people_best_friend_id_idx" ' +
-              'ON "people" ("best_friend_id")', []],
-            [c, 'RELEASE AZULJS_1', []],
-          ]);
-        });
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed('SAVEPOINT AZULJS_1',
+          'PRAGMA defer_foreign_keys=1',
+          'PRAGMA table_info("people")',
+          'PRAGMA index_list("people")',
+          'PRAGMA index_info("people_best_friend_id_idx")',
+          'PRAGMA foreign_key_list("people")',
+          'ALTER TABLE "people" RENAME TO "people_old"',
+
+          'CREATE TABLE "people" (' +
+          '"id" integer PRIMARY KEY NOT NULL, ' +
+          '"first" varchar(255), ' +
+          '"best_friend_id" integer DEFAULT 1, ' +
+          'FOREIGN KEY ("best_friend_id") REFERENCES "people" ("id") ' +
+          'ON DELETE NO ACTION ON UPDATE NO ACTION MATCH NONE)',
+
+          'INSERT INTO "people" ("id", "first", "best_friend_id") ' +
+          'SELECT "id", "first_name", "best_friend_id" FROM "people_old"',
+
+          'DROP TABLE "people_old"',
+
+          'CREATE INDEX "people_best_friend_id_idx" ' +
+          'ON "people" ("best_friend_id")',
+
+          'RELEASE AZULJS_1')
+        .and.used.oneClient;
       });
 
       it('drops a column once when procedure is repeated', function() {
@@ -187,34 +159,34 @@ describe('SQLite3 schema', __connect(config, function() {
           table.drop('first_name');
         });
 
-        expect(alter.sql).to
-          .eql('-- procedure for ALTER TABLE "people" DROP COLUMN "first_name"');
+        alter.should.have.property('sql', '-- procedure for ' +
+          'ALTER TABLE "people" DROP COLUMN "first_name"');
 
-        return alter
-        .then(function() { return alter; })
-        .then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'SAVEPOINT AZULJS_1', []],
-            [c, 'PRAGMA defer_foreign_keys=1', []],
-            [c, 'PRAGMA table_info("people")', []],
-            [c, 'PRAGMA index_list("people")', []],
-            [c, 'PRAGMA index_info("people_best_friend_id_idx")', []],
-            [c, 'PRAGMA foreign_key_list("people")', []],
-            [c, 'ALTER TABLE "people" RENAME TO "people_old"', []],
-            [c, 'CREATE TABLE "people" (' +
-              '"id" integer PRIMARY KEY NOT NULL, ' +
-              '"best_friend_id" integer DEFAULT 1, ' +
-              'FOREIGN KEY ("best_friend_id") REFERENCES "people" ("id") ' +
-              'ON DELETE NO ACTION ON UPDATE NO ACTION MATCH NONE)', []],
-            [c, 'INSERT INTO "people" ("id", "best_friend_id") ' +
-              'SELECT "id", "best_friend_id" FROM "people_old"', []],
-            [c, 'DROP TABLE "people_old"', []],
-            [c, 'CREATE INDEX "people_best_friend_id_idx" ' +
-              'ON "people" ("best_friend_id")', []],
-            [c, 'RELEASE AZULJS_1', []],
-          ]);
-        });
+        return alter.then(function() { return alter; }).should.eventually.exist
+        .meanwhile(adapter).should.have.executed('SAVEPOINT AZULJS_1',
+          'PRAGMA defer_foreign_keys=1',
+          'PRAGMA table_info("people")',
+          'PRAGMA index_list("people")',
+          'PRAGMA index_info("people_best_friend_id_idx")',
+          'PRAGMA foreign_key_list("people")',
+          'ALTER TABLE "people" RENAME TO "people_old"',
+
+          'CREATE TABLE "people" (' +
+          '"id" integer PRIMARY KEY NOT NULL, ' +
+          '"best_friend_id" integer DEFAULT 1, ' +
+          'FOREIGN KEY ("best_friend_id") REFERENCES "people" ("id") ' +
+          'ON DELETE NO ACTION ON UPDATE NO ACTION MATCH NONE)',
+
+          'INSERT INTO "people" ("id", "best_friend_id") ' +
+          'SELECT "id", "best_friend_id" FROM "people_old"',
+
+          'DROP TABLE "people_old"',
+
+          'CREATE INDEX "people_best_friend_id_idx" ' +
+          'ON "people" ("best_friend_id")',
+
+          'RELEASE AZULJS_1')
+        .and.used.oneClient;
       });
 
       describe('with raw table rename queries causing problems', function() {
@@ -236,29 +208,28 @@ describe('SQLite3 schema', __connect(config, function() {
           return schema.alterTable('people', function(table) {
             table.drop('first_name');
           })
-          .execute()
-          .throw(new Error('Expected alter to fail'))
-          .catch(function(e) {
-            expect(e).to.match(/no.*table.*people_old/i);
-            var c = executedSQL()[0][0];
-            expect(executedSQL()).to.eql([
-              [c, 'SAVEPOINT AZULJS_1', []],
-              [c, 'PRAGMA defer_foreign_keys=1', []],
-              [c, 'PRAGMA table_info("people")', []],
-              [c, 'PRAGMA index_list("people")', []],
-              [c, 'PRAGMA index_info("people_best_friend_id_idx")', []],
-              [c, 'PRAGMA foreign_key_list("people")', []],
-              [c, 'ALTER TABLE "people" RENAME TO "people_old_wrongname"', []],
-              [c, 'CREATE TABLE "people" (' +
-                '"id" integer PRIMARY KEY NOT NULL, ' +
-                '"best_friend_id" integer DEFAULT 1, ' +
-                'FOREIGN KEY ("best_friend_id") REFERENCES "people" ("id") ' +
-                'ON DELETE NO ACTION ON UPDATE NO ACTION MATCH NONE)', []],
-              [c, 'INSERT INTO "people" ("id", "best_friend_id") ' +
-                'SELECT "id", "best_friend_id" FROM "people_old"', []],
-              [c, 'ROLLBACK TO AZULJS_1', []],
-            ]);
-          });
+          .should.eventually.be.rejectedWith(/no.*table.*people_old/i)
+          .meanwhile(adapter).should.have.executed('SAVEPOINT AZULJS_1',
+            'PRAGMA defer_foreign_keys=1',
+            'PRAGMA table_info("people")',
+            'PRAGMA index_list("people")',
+            'PRAGMA index_info("people_best_friend_id_idx")',
+            'PRAGMA foreign_key_list("people")',
+            'ALTER TABLE "people" RENAME TO "people_old_wrongname"',
+
+            'CREATE TABLE "people" (' +
+            '"id" integer PRIMARY KEY NOT NULL, ' +
+            '"best_friend_id" integer DEFAULT 1, ' +
+            'FOREIGN KEY ("best_friend_id") REFERENCES "people" ("id") ' +
+            'ON DELETE NO ACTION ON UPDATE NO ACTION MATCH NONE)',
+
+            'ROLLBACK TO AZULJS_1')
+          .meanwhile(adapter).should.have
+          .attempted(anySQL(8), [
+            'INSERT INTO "people" ("id", "best_friend_id") ' +
+            'SELECT "id", "best_friend_id" FROM "people_old"',
+          ], anySQL(1))
+          .and.used.oneClient;
         });
       });
 
@@ -270,36 +241,39 @@ describe('SQLite3 schema', __connect(config, function() {
           table.renameIndex('people_best_friend_id_idx', 'bff_idx');
         });
 
-        expect(alter.sql).to.eql('-- procedure for ALTER TABLE "people" ' +
-          'DROP COLUMN "first_name", ADD COLUMN "name" varchar(255), ' +
+        alter.should.have.property('sql', '-- procedure for ' +
+          'ALTER TABLE "people" DROP COLUMN "first_name", ' +
+          'ADD COLUMN "name" varchar(255), ' +
           'ADD INDEX "people_name_idx" ("name"), ' +
           'RENAME INDEX "people_best_friend_id_idx" TO "bff_idx"');
 
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'SAVEPOINT AZULJS_1', []],
-            [c, 'PRAGMA defer_foreign_keys=1', []],
-            [c, 'PRAGMA table_info("people")', []],
-            [c, 'PRAGMA index_list("people")', []],
-            [c, 'PRAGMA index_info("people_best_friend_id_idx")', []],
-            [c, 'PRAGMA foreign_key_list("people")', []],
-            [c, 'ALTER TABLE "people" RENAME TO "people_old"', []],
-            [c, 'CREATE TABLE "people" (' +
-              '"id" integer PRIMARY KEY NOT NULL, ' +
-              '"best_friend_id" integer DEFAULT 1, ' +
-              '"name" varchar(255), ' +
-              'FOREIGN KEY ("best_friend_id") REFERENCES "people" ("id") ' +
-              'ON DELETE NO ACTION ON UPDATE NO ACTION MATCH NONE)', []],
-            [c, 'INSERT INTO "people" ("id", "best_friend_id") ' +
-              'SELECT "id", "best_friend_id" FROM "people_old"', []],
-            [c, 'DROP TABLE "people_old"', []],
-            [c, 'CREATE INDEX "bff_idx" ' +
-              'ON "people" ("best_friend_id")', []],
-            [c, 'CREATE INDEX "people_name_idx" ON "people" ("name")', []],
-            [c, 'RELEASE AZULJS_1', []],
-          ]);
-        });
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed('SAVEPOINT AZULJS_1',
+          'PRAGMA defer_foreign_keys=1',
+          'PRAGMA table_info("people")',
+          'PRAGMA index_list("people")',
+          'PRAGMA index_info("people_best_friend_id_idx")',
+          'PRAGMA foreign_key_list("people")',
+          'ALTER TABLE "people" RENAME TO "people_old"',
+
+          'CREATE TABLE "people" (' +
+          '"id" integer PRIMARY KEY NOT NULL, ' +
+          '"best_friend_id" integer DEFAULT 1, ' +
+          '"name" varchar(255), ' +
+          'FOREIGN KEY ("best_friend_id") REFERENCES "people" ("id") ' +
+          'ON DELETE NO ACTION ON UPDATE NO ACTION MATCH NONE)',
+
+          'INSERT INTO "people" ("id", "best_friend_id") ' +
+          'SELECT "id", "best_friend_id" FROM "people_old"',
+
+          'DROP TABLE "people_old"',
+
+          'CREATE INDEX "bff_idx" ' +
+          'ON "people" ("best_friend_id")',
+
+          'CREATE INDEX "people_name_idx" ON "people" ("name")',
+          'RELEASE AZULJS_1')
+        .and.used.oneClient;
       });
     });
   });

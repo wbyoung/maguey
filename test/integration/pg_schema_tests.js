@@ -12,7 +12,7 @@ if (!/^(1|true)$/i.test(process.env.TEST_POSTGRES || '1')) { return; }
 var EntryQuery = require('../../lib/query/entry');
 var schema;
 
-var executedSQL, config = {
+var config = {
   adapter: 'pg',
   connection: {
     user: process.env.PG_USER || 'root',
@@ -25,20 +25,6 @@ describe('PostgreSQL schema', __connect(config, function() {
   /* global query, adapter */
 
   beforeEach(function() { schema = query.schema(); });
-  beforeEach(function() {
-    sinon.spy(adapter, '_execute');
-    executedSQL = function() {
-      var result = [];
-      adapter._execute.getCalls().forEach(function(call) {
-        result.push(call.args.slice(0,3));
-      });
-      return result;
-    };
-  });
-
-  afterEach(function() {
-    adapter._execute.restore();
-  });
 
   describe('creating a table', function() {
     beforeEach(function() {
@@ -56,46 +42,42 @@ describe('PostgreSQL schema', __connect(config, function() {
     });
 
     it('was created with the right sql', function() {
-      expect(this.create.sql).to.eql('-- procedure for ' +
+      this.create.should.have.property('sql', '-- procedure for ' +
         'CREATE TABLE "people" (' +
-          '"id" serial PRIMARY KEY NOT NULL, ' +
-          '"first_name" varchar(255), ' +
-          '"best_friend_id" integer DEFAULT 1 REFERENCES "people" ("id"), ' +
-          'INDEX "people_best_friend_id_idx" ("best_friend_id"))');
+        '"id" serial PRIMARY KEY NOT NULL, ' +
+        '"first_name" varchar(255), ' +
+        '"best_friend_id" integer DEFAULT 1 REFERENCES "people" ("id"), ' +
+        'INDEX "people_best_friend_id_idx" ("best_friend_id"))');
 
-      var c = executedSQL()[0][0];
-      expect(executedSQL()).to.eql([
-        [c, 'BEGIN', []],
-        [c, 'CREATE TABLE "people" (' +
-          '"id" serial PRIMARY KEY NOT NULL, ' +
-          '"first_name" varchar(255), ' +
-          '"best_friend_id" integer DEFAULT 1 REFERENCES "people" ("id"))', []],
-        [c, 'CREATE INDEX "people_best_friend_id_idx" ' +
-          'ON "people" ("best_friend_id")', []],
-        [c, 'COMMIT', []],
-      ]);
+      adapter.should.have.executed(
+        'BEGIN',
+
+        'CREATE TABLE "people" (' +
+        '"id" serial PRIMARY KEY NOT NULL, ' +
+        '"first_name" varchar(255), ' +
+        '"best_friend_id" integer DEFAULT 1 REFERENCES "people" ("id"))',
+
+        'CREATE INDEX "people_best_friend_id_idx" ' +
+        'ON "people" ("best_friend_id")',
+
+        'COMMIT')
+      .and.used.oneClient;
     });
 
     describe('after creation', function() {
-      beforeEach(function() {
-        adapter._execute.restore();
-        sinon.spy(adapter, '_execute');
-      });
+      beforeEach(function() { adapter.scope(); });
+      afterEach(function() { adapter.unscope(); });
 
       it('can rename columns', function() {
         var alter = schema.alterTable('people', function(table) {
           table.rename('first_name', 'first', 'string');
         });
+        var sql = 'ALTER TABLE "people" RENAME "first_name" TO "first"';
 
-        expect(alter.sql).to
-          .eql('ALTER TABLE "people" RENAME "first_name" TO "first"');
-
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'ALTER TABLE "people" RENAME "first_name" TO "first"', []]
-          ]);
-        });
+        alter.should.have.property('sql', sql);
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed(sql)
+        .and.used.oneClient;
       });
 
       it('can drop and add columns at the same time', function() {
@@ -103,18 +85,14 @@ describe('PostgreSQL schema', __connect(config, function() {
           table.drop('first_name');
           table.text('bio');
         });
-
-        expect(alter.sql).to.eql('ALTER TABLE "people" ' +
+        var sql = 'ALTER TABLE "people" ' +
           'DROP COLUMN "first_name", ' +
-          'ADD COLUMN "bio" text');
+          'ADD COLUMN "bio" text';
 
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'ALTER TABLE "people" DROP COLUMN "first_name", ' +
-              'ADD COLUMN "bio" text', []],
-          ]);
-        });
+        alter.should.have.property('sql', sql);
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed(sql)
+        .and.used.oneClient;
       });
 
       it('can rename two columns', function() {
@@ -123,71 +101,54 @@ describe('PostgreSQL schema', __connect(config, function() {
           table.rename('first_name', 'first', 'string');
         });
 
-        expect(alter.sql).to.eql('-- procedure for ' +
+        alter.should.have.property('sql', '-- procedure for ' +
           'ALTER TABLE "people" RENAME "id" TO "identifier", ' +
           'RENAME "first_name" TO "first"');
 
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'BEGIN', []],
-            [c, 'ALTER TABLE "people" RENAME "id" TO "identifier"', []],
-            [c, 'ALTER TABLE "people" RENAME "first_name" TO "first"', []],
-            [c, 'COMMIT', []],
-          ]);
-        });
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed('BEGIN',
+          'ALTER TABLE "people" RENAME "id" TO "identifier"',
+          'ALTER TABLE "people" RENAME "first_name" TO "first"',
+          'COMMIT')
+        .and.used.oneClient;
       });
 
       it('can add an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.index('first_name');
         });
+        var sql = 'CREATE INDEX "people_first_name_idx" '+
+          'ON "people" ("first_name")';
 
-        expect(alter.sql).to
-          .eql('CREATE INDEX "people_first_name_idx" '+
-            'ON "people" ("first_name")');
-
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'CREATE INDEX "people_first_name_idx" ' +
-              'ON "people" ("first_name")', []]
-          ]);
-        });
+        alter.should.have.property('sql', sql);
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed(sql)
+        .and.used.oneClient;
       });
 
       it('can drop an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.dropIndex('best_friend_id');
         });
+        var sql = 'DROP INDEX "people_best_friend_id_idx"';
 
-        expect(alter.sql).to
-          .eql('DROP INDEX "people_best_friend_id_idx"');
-
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'DROP INDEX "people_best_friend_id_idx"', []]
-          ]);
-        });
+        alter.should.have.property('sql', sql);
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed(sql)
+        .and.used.oneClient;
       });
 
       it('can rename an index', function() {
         var alter = schema.alterTable('people', function(table) {
           table.renameIndex('people_best_friend_id_idx', 'bff_idx');
         });
+        var sql = 'ALTER INDEX "people_best_friend_id_idx" ' +
+          'RENAME TO "bff_idx"';
 
-        expect(alter.sql).to
-          .eql('ALTER INDEX "people_best_friend_id_idx" ' +
-            'RENAME TO "bff_idx"');
-
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'ALTER INDEX "people_best_friend_id_idx" ' +
-              'RENAME TO "bff_idx"', []]
-          ]);
-        });
+        alter.should.have.property('sql', sql);
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed(sql)
+        .and.used.oneClient;
       });
 
       it('rename and index simultaneously', function() {
@@ -196,20 +157,17 @@ describe('PostgreSQL schema', __connect(config, function() {
           table.index(['first']);
         });
 
-        expect(alter.sql).to.eql('-- procedure for ' +
+        alter.should.have.property('sql', '-- procedure for ' +
           'ALTER TABLE "people" ' +
           'RENAME "first_name" TO "first", ' +
           'ADD INDEX "people_first_idx" ("first")');
 
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'BEGIN', []],
-            [c, 'ALTER TABLE "people" RENAME "first_name" TO "first"', []],
-            [c, 'CREATE INDEX "people_first_idx" ON "people" ("first")', []],
-            [c, 'COMMIT', []],
-          ]);
-        });
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed('BEGIN',
+          'ALTER TABLE "people" RENAME "first_name" TO "first"',
+          'CREATE INDEX "people_first_idx" ON "people" ("first")',
+          'COMMIT')
+        .and.used.oneClient;
       });
 
       it('can add, rename, & index simultaneously', function() {
@@ -221,26 +179,23 @@ describe('PostgreSQL schema', __connect(config, function() {
           table.renameIndex('people_first_last_idx', 'name_idx');
         });
 
-        expect(alter.sql).to.eql('-- procedure for ' +
+        alter.should.have.property('sql', '-- procedure for ' +
           'ALTER TABLE "people" ADD COLUMN "last" varchar(255), ' +
           'RENAME "first_name" TO "first", ' +
           'DROP INDEX "people_best_friend_id_idx", ' +
           'ADD INDEX "people_first_last_idx" ("first", "last"), ' +
           'RENAME INDEX "people_first_last_idx" TO "name_idx"');
 
-        return alter.then(function() {
-          var c = executedSQL()[0][0];
-          expect(executedSQL()).to.eql([
-            [c, 'BEGIN', []],
-            [c, 'ALTER TABLE "people" ADD COLUMN "last" varchar(255)', []],
-            [c, 'ALTER TABLE "people" RENAME "first_name" TO "first"', []],
-            [c, 'DROP INDEX "people_best_friend_id_idx"', []],
-            [c, 'CREATE INDEX "people_first_last_idx" ' +
-              'ON "people" ("first", "last")', []],
-            [c, 'ALTER INDEX "people_first_last_idx" RENAME TO "name_idx"', []],
-            [c, 'COMMIT', []],
-          ]);
-        });
+        return alter.should.eventually.exist
+        .meanwhile(adapter).should.have.executed('BEGIN',
+          'ALTER TABLE "people" ADD COLUMN "last" varchar(255)',
+          'ALTER TABLE "people" RENAME "first_name" TO "first"',
+          'DROP INDEX "people_best_friend_id_idx"',
+          'CREATE INDEX "people_first_last_idx" ' +
+            'ON "people" ("first", "last")',
+          'ALTER INDEX "people_first_last_idx" RENAME TO "name_idx"',
+          'COMMIT')
+        .and.used.oneClient;
       });
 
       describe('with raw column rename queries causing problems', function() {
@@ -266,18 +221,15 @@ describe('PostgreSQL schema', __connect(config, function() {
             table.string('last');
             table.rename('first_name', 'first', 'string');
           })
-          .execute()
-          .throw(new Error('Expected alter to fail'))
-          .catch(function(e) {
-            expect(e).to.match(/first_name_invalid.*not.*exist/i);
-            var c = executedSQL()[0][0];
-            expect(executedSQL()).to.eql([
-              [c, 'BEGIN', []],
-              [c, 'ALTER TABLE "people" ADD COLUMN "last" varchar(255)', []],
-              [c, 'ALTER TABLE "people" RENAME "first_name_invalid" TO "first"', []],
-              [c, 'ROLLBACK', []],
-            ]);
-          });
+          .should.eventually.be.rejectedWith(/first_name_invalid.*not.*exist/i)
+          .meanwhile(adapter).should.have.executed('BEGIN',
+            'ALTER TABLE "people" ADD COLUMN "last" varchar(255)',
+            'ROLLBACK')
+          .meanwhile(adapter).should.have.attempted('BEGIN',
+            /^/, // tested above, executed
+            'ALTER TABLE "people" RENAME "first_name_invalid" TO "first"',
+            'ROLLBACK')
+          .and.used.oneClient;
         });
       });
     });

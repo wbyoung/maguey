@@ -35,7 +35,7 @@
     "chai-as-promised": "^5.0.0",
     "istanbul": "^0.3.14",
     "jshint": "^2.8.0",
-    "maguey-chai": "0.1.0",
+    "maguey-chai": "0.3.0",
     "mocha": "^2.2.5",
     "mysql": "^2.5.2",
     "pg": "^4.1.1",
