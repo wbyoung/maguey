@@ -1,6 +1,7 @@
 {
   "preset": "airbnb",
   "excludeFiles": ["node_modules/**", "coverage/**", "test/**"],
+  "errorFilter": "./.jscsfilter",
   "disallowEmptyBlocks": null,
   "disallowFunctionDeclarations": true,
   "disallowKeywordsOnNewLine": null,
